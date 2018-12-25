@@ -1,0 +1,46 @@
+This is BibTeX, Version 0.99d (TeX Live 2016)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: /Users/rtl/Dropbox/PHD_ECN/COURSES/WiSe_2018_Models_of_Neural_Systems/PROJECT/REPORT/.texpadtmp/sbl_writeup.aux
+The style file: plainnat.bst
+Database file #1: ../main.bib
+You've used 5 entries,
+            2773 wiz_defined-function locations,
+            626 strings with 6046 characters,
+and the built_in function-call counts, 3009 in all, are:
+= -- 260
+> -- 195
+< -- 2
++ -- 65
+- -- 60
+* -- 256
+:= -- 448
+add.period$ -- 15
+call.type$ -- 5
+change.case$ -- 35
+chr.to.int$ -- 5
+cite$ -- 10
+duplicate$ -- 133
+empty$ -- 229
+format.name$ -- 65
+if$ -- 638
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 5
+newline$ -- 33
+num.names$ -- 20
+pop$ -- 70
+preamble$ -- 1
+purify$ -- 30
+quote$ -- 0
+skip$ -- 113
+stack$ -- 0
+substring$ -- 132
+swap$ -- 29
+text.length$ -- 2
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 55
+warning$ -- 0
+while$ -- 24
+width$ -- 0
+write$ -- 72

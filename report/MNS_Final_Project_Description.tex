@@ -1,0 +1,47 @@
+\title{Model of Neural Systems Course: WiSe 2018/2019\\
+Final Project Proposal - Computer Practical \\ 
+Lecturer: Prof. Richard Kempter (BCCN Berlin)\\
+Biologically Plausible Learning in Deep Layered Structures}
+\author{Robert Tjarko Lange\thanks{Einstein Center for Neurosciences Berlin. All correspondence to \href{mailto:rtl17@ic.ac.uk}{rtl17@ic.ac.uk}. This is a self-proposed projects which is still up for discussion.}
+}
+\date{December 2018}
+
+\documentclass[12pt]{article}
+\usepackage{hyperref}
+\usepackage{amsmath, amssymb}
+\usepackage{titling}
+\usepackage[top=1.25in, bottom=1.25in, left=0.75in, right=0.75in]{geometry}
+\usepackage{mathtools}
+\usepackage[round]{natbib}
+
+
+\setlength{\droptitle}{-10em}
+
+\begin{document}
+
+\setcounter{tocdepth}{1}
+
+
+\maketitle
+
+\subsection*{General Outline}
+Backpropagation \citep{rumelhart1986} provides a scalable general learning rule that intends to solve the credit assignment problem in layered structures. Based on a learning objective (e.g. loss function) one is able to utilize the chain rule in order to propagate back an error signal. In such a setting backpropagation provides a computationally efficient way to calculate gradients. These gradients can then be combined with powerful (non-)convex optimization procedures such as stochastic gradient descent (SGD) variants. Backpropagation together with computational graph procedures provide the main pillars of training modern Deep Learning architectures. 
+
+But how biologically plausible is backpropagation? Is the hardware provided by the brain able to implement Deep Learning? Most likely not. In the following project, we will analyze an alternative to the traditional backpropagation paradigm which will try to counter issues that render backpropagation biologically implausible (e.g. see \citet{lillicrap2016, guerguiev2017}). 
+
+
+\subsection*{Problems}
+\begin{enumerate}
+	\item Review literature: Read the paper by \citet{guerguiev2017}. Outline the motivation for studying alternative learning rules and potential benefits for both the Machine Learning as well as the Computational Neuroscience community. Furthermore, put a special emphasis on current problems of the backpropagation algorithm that render it neuroscientifically implausible (non-locality, asymmetry in information flow, weight matrix transposition etc.). Focus on a neuroscience perspective.
+	\item Re-implement the model outlined in the paper (\textit{Hint}: Take a look at \url{https://github.com/jordan-g/Segregated-Dendrite-Deep-Learning} but try to implement it from scratch using only basic low-level packages i.e. numpy, scipy, etc.). Compare the learning dynamics across training and test set to a simple feedforward network with similar architecture (implemented in PyTorch or TensorFlow). Interpret your results.
+	\item Test the robustness of the learning performance to different hyperparameters (number of hidden units/layers, learning rates, error signal scaling factors, etc.). Evaluate the stability and discuss benefits of local learning rules. Why could evolutionary pressure have forced the brain to develop such a learning rule? 
+	\item Test the scalability and generalization capabilities of the alternative learning rule to different datasets (e.g. binary classification/MNIST/Fashion-MNIST/CIFAR 10/ImageNet). How does the learning rule generalize across domains? 
+	\item Read recent developments from the latest NeuRIPS 2018 conference. Especially, focus on results outlined in \citet{bartunov2018} and qualitatively discuss them in the light of question 4. Furthermore, discuss \citet{sacramento2018} and try to compare computational complexity as well as plausibility across the three different approaches.
+	\item (Bonus): If there is enough time please have a look at JAX (\url{https://github.com/google/jax}) in order to implement fast numerical linear algebra operations. Furthermore, it might be helpful to make use of Google Colab (\url{https://colab.research.google.com/}) for fast training and testing.
+\end{enumerate}
+
+
+\bibliographystyle{plainnat}
+\bibliography{main}
+
+\end{document}

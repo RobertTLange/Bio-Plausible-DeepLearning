@@ -6,32 +6,44 @@ from logger import Logger
 
 
 class CNN(nn.Module):
-    def __init__(self, num_classes=10):
+    def __init__(self, ch_sizes, k_sizes, stride, padding, out_size):
         super(CNN, self).__init__()
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=5, stride=1, padding=2),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
-        self.fc = nn.Linear(7*7*32, num_classes)
+        self.layers = nn.ModuleList()
+
+        for k in range(len(ch_sizes) - 1):
+            self.layers.append(nn.Conv2d(in_channels=ch_sizes[k],
+                                         out_channels=ch_sizes[k+1],
+                                         kernel_size=k_sizes[k],
+                                         stride=stride,
+                                         padding=padding))
+            self.layers.append(nn.BatchNorm2d(ch_sizes[k+1]))
+            self.layers.append(nn.ReLU())
+            self.layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+
+        self.layers.append(nn.Linear((k_sizes[-1] + 2)**2*ch_sizes[-1], out_size))
+
+        self.print_architecture()
 
     def forward(self, x):
-        out = self.layer1(x)
-        out = self.layer2(out)
+        out = x
+        for layer in self.layers[:-1]:
+            out = layer(out)
+
         out = out.reshape(out.size(0), -1)
-        out = self.fc(out)
+        out = self.layers[-1](out)
         return out
+
+    def print_architecture(self):
+        for layer in self.layers:
+            print(layer)
 
 
 def train_cnn_model(model, num_epochs,
                     train_loader, test_loader,
-                    device, optimizer, model_fname ="temp_model.ckpt",
+                    device, optimizer, criterion,
+                    model_fname ="temp_model.ckpt",
                     verbose=True, logging=True):
+    logger = Logger('./logs')
 
     for epoch in range(num_epochs):
         for i, (images, labels) in enumerate(train_loader):
@@ -128,7 +140,8 @@ if __name__ == "__main__":
     num_epochs = 5
 
     # Instantiate the model with layersize and Logging directory
-    cnn_model = CNN(num_classes=10).to(device)
+    cnn_model = CNN(ch_sizes=[1, 16, 32], k_sizes=[5, 5],
+                    stride=1, padding=2, out_size=10).to(device)
     logger = Logger('./logs')
 
     # Loss and optimizer
@@ -137,5 +150,5 @@ if __name__ == "__main__":
 
     train_cnn_model(cnn_model, num_epochs,
                     train_loader, test_loader,
-                    device, optimizer, model_fname ="temp_model.ckpt",
+                    device, optimizer, model_fname ="models/temp_model_cnn.ckpt",
                     verbose=True, logging=True)

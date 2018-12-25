@@ -71,7 +71,7 @@ class Logger(object):
         self.writer.flush()
 
 
-def update_logger(logger):
+def update_logger(logger, loss, accuracy, model, images, train_loader):
     info = { 'loss': loss.item(), 'accuracy': accuracy.item() }
 
     for tag, value in info.items():
@@ -88,3 +88,4 @@ def update_logger(logger):
 
     for tag, images in info.items():
         logger.image_summary(tag, images, epoch*len(train_loader) + i+1)
+    return

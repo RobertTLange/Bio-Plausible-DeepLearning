@@ -6,23 +6,33 @@ from logger import Logger
 
 # Fully connected neural network with one hidden layer
 class DNN(nn.Module):
-    def __init__(self, input_size=784, hidden_size=500, num_classes=10):
+    def __init__(self, h_sizes=[784, 500], out_size=10):
         super(DNN, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, num_classes)
+        self.layers = nn.ModuleList()
+        for k in range(len(h_sizes)-1):
+            self.layers.append(nn.Linear(h_sizes[k], h_sizes[k+1]))
+            self.layers.append(nn.ReLU())
+        self.layers.append(nn.Linear(h_sizes[k+1], out_size))
+
+        self.print_architecture()
 
     def forward(self, x):
-        out = self.fc1(x)
-        out = self.relu(out)
-        out = self.fc2(out)
+        out = x
+        for layer in self.layers:
+            out = layer(out)
         return out
+
+    def print_architecture(self):
+        for layer in self.layers:
+            print(layer)
 
 
 def train_dnn_model(model, num_epochs,
-                train_loader, test_loader,
-                device, optimizer, model_fname ="temp_model.ckpt",
-                verbose=True, logging=True):
+                    train_loader, test_loader,
+                    device, optimizer, criterion,
+                    model_fname ="temp_model.ckpt",
+                    verbose=True, logging=True):
+    logger = Logger('./logs')
 
     for epoch in range(num_epochs):
         for i, (images, labels) in enumerate(train_loader):
@@ -119,7 +129,7 @@ if __name__ == "__main__":
     num_epochs = 5
 
     # Instantiate the model with layersize and Logging directory
-    dnn_model = DNN(input_size=784, hidden_size=500, num_classes=10).to(device)
+    dnn_model = DNN(h_sizes=[784, 500, 300, 100], out_size=10).to(device)
     logger = Logger('./logs')
 
     # Loss and optimizer
@@ -128,5 +138,6 @@ if __name__ == "__main__":
 
     train_dnn_model(dnn_model, num_epochs,
                     train_loader, test_loader,
-                    device, optimizer, model_fname ="temp_model.ckpt",
+                    device, optimizer, criterion,
+                    model_fname ="models/temp_model_dnn.ckpt",
                     verbose=True, logging=True)

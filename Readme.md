@@ -5,13 +5,26 @@ This project analyzes different learning rules in deep layered structures. More 
 
 ## DONE:
 
-*[ ] PyTorch MLP/CNN baseline for MNIST
+* [x] PyTorch MLP/CNN baseline for MNIST
+* [x] Create remote repo
+* [x] Generalize network architecture to variable inputs
 
 ## TODO:
 
-*[ ] Create remote repo
-*[ ] Generalize network architecture to variable inputs
-*[ ] Write update_logger function
-*[ ] Plot learning curves - output from logger
-*[ ] Extend to different datasets - CIFAR 10
-*[ ] Try paperspace/remote gpu testing
+* [ ] Write update_logger function
+* [ ] Plot learning curves - output from logger
+* [ ] Extend to different datasets - CIFAR 10
+* [ ] Try paperspace/remote gpu testing
+* [ ] Read papers
+* [ ] Add first notes of papers
+
+
+## Structure of Report:
+
+    1. General Intro/Motivation/Structure Outline
+    2. Backpropagation and Compartmental Learning Rules
+        a. Base Theory Introduction
+        b. Problems with bio plausibility
+        c. Pyramidal neurons/Larkum
+        d. Model Guergiev 2017
+    3. Comparison across different datasets
