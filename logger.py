@@ -71,7 +71,8 @@ class Logger(object):
         self.writer.flush()
 
 
-def update_logger(logger, loss, accuracy, model, images, train_loader):
+def update_logger(logger, epoch, i, loss, accuracy, model,
+                  images, train_loader):
     info = { 'loss': loss.item(), 'accuracy': accuracy.item() }
 
     for tag, value in info.items():

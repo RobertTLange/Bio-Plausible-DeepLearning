@@ -8,10 +8,10 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] PyTorch MLP/CNN baseline for MNIST
 * [x] Create remote repo
 * [x] Generalize network architecture to variable inputs
+* [x] Write update_logger function
 
 ## TODO:
 
-* [ ] Write update_logger function
 * [ ] Plot learning curves - output from logger
 * [ ] Extend to different datasets - CIFAR 10
 * [ ] Try paperspace/remote gpu testing
@@ -28,3 +28,6 @@ This project analyzes different learning rules in deep layered structures. More 
         c. Pyramidal neurons/Larkum
         d. Model Guergiev 2017
     3. Comparison across different datasets
+        a. MNIST
+        b. Fashion-MNIST
+        c. CIFAR10

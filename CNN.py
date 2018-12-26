@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-from logger import Logger
+from logger import Logger, update_logger
 
 
 class CNN(nn.Module):
@@ -91,23 +91,8 @@ def train_cnn_model(model, num_epochs,
                                    loss.item(), accuracy.item(), test_accuracy))
 
                 if logging:
-                    # 1. Log scalar values (scalar summary)
-                    info = { 'loss': loss.item(), 'accuracy': accuracy.item() }
-
-                    for tag, value in info.items():
-                        logger.scalar_summary(tag, value, epoch*len(train_loader) + i+1)
-
-                    # 2. Log values and gradients of the parameters (histogram summary)
-                    for tag, value in model.named_parameters():
-                        tag = tag.replace('.', '/')
-                        logger.histo_summary(tag, value.data.cpu().numpy(), epoch*len(train_loader) + i+1)
-                        logger.histo_summary(tag+'/grad', value.grad.data.cpu().numpy(), epoch*len(train_loader) + i+1)
-
-                    # 3. Log training images (image summary)
-                    info = { 'images': images.view(-1, 28, 28)[:10].cpu().numpy() }
-
-                    for tag, images in info.items():
-                        logger.image_summary(tag, images, epoch*len(train_loader) + i+1)
+                    update_logger(logger, epoch, i, loss, accuracy, model,
+                                  images, train_loader)
 
 
 if __name__ == "__main__":
