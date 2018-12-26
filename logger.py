@@ -1,4 +1,6 @@
 # Code referenced from https://gist.github.com/gyglim/1f8dfb1b5c82627ae3efcfbbadb9f514
+import os
+import glob
 import tensorflow as tf
 import numpy as np
 import scipy.misc
@@ -71,9 +73,11 @@ class Logger(object):
         self.writer.flush()
 
 
-def update_logger(logger, epoch, i, loss, accuracy, model,
-                  images, train_loader):
-    info = { 'loss': loss.item(), 'accuracy': accuracy.item() }
+def update_logger(logger, epoch, i, loss, train_accuracy, test_accuracy,
+                  model, images, train_loader):
+    info = {'loss': loss.item(),
+            'train_accuracy': train_accuracy.item(),
+            'test_accuracy': test_accuracy}
 
     for tag, value in info.items():
         logger.scalar_summary(tag, value, epoch*len(train_loader) + i+1)
@@ -90,3 +94,34 @@ def update_logger(logger, epoch, i, loss, accuracy, model,
     for tag, images in info.items():
         logger.image_summary(tag, images, epoch*len(train_loader) + i+1)
     return
+
+
+def get_latest_log_fname(log_dir):
+    list_of_files = glob.glob(log_dir + "/*") # * means all if need specific format then *.csv
+    latest_file = max(list_of_files, key=os.path.getctime)
+    return latest_file
+
+
+def process_logger(log_fname, save_fname=None):
+    iterations = []
+    losses = []
+    train_accuracies = []
+    test_accuracies = []
+
+    for e in tf.train.summary_iterator(log_fname):
+        for v in e.summary.value:
+            if v.tag == 'loss':
+                losses.append(v.simple_value)
+            elif v.tag == 'train_accuracy':
+                train_accuracies.append(v.simple_value)
+            elif v.tag == 'test_accuracy':
+                test_accuracies.append(v.simple_value)
+        iterations.append(int(e.step))
+
+    iterations = np.unique(iteration)[1:]
+
+    if save_fname is not None:
+        out_array = np.array([iterations, losses,
+                              train_accuracies, test_accuracies])
+        np.savetxt(save_fname, out_array)
+    return iterations, losses, train_accuracies, test_accuracies

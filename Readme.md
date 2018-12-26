@@ -8,7 +8,7 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] PyTorch MLP/CNN baseline for MNIST
 * [x] Create remote repo
 * [x] Generalize network architecture to variable inputs
-* [x] Write update_logger function
+* [x] Write update_logger, process_logger function
 
 ## TODO:
 
@@ -17,6 +17,10 @@ This project analyzes different learning rules in deep layered structures. More 
 * [ ] Try paperspace/remote gpu testing
 * [ ] Read papers
 * [ ] Add first notes of papers
+    * Lillicrap original
+    * Bartunov
+* [ ] Set up bayesian optimization pipeline
+    * Need to rewrite - one function taking in hyperparams and returning objective
 
 
 ## Structure of Report:

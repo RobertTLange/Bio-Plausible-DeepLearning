@@ -60,11 +60,11 @@ def train_cnn_model(model, num_epochs,
             loss.backward()
             optimizer.step()
 
-            # Compute accuracy
-            _, argmax = torch.max(outputs, 1)
-            accuracy = (labels == argmax.squeeze()).float().mean()
-
             if (i+1) % 100 == 0:
+                # Compute train accuracy
+                _, argmax = torch.max(outputs, 1)
+                train_accuracy = (labels == argmax.squeeze()).float().mean()
+
                 # Set model to eval mode for dropout and batch norm
                 model.eval()
                 with torch.no_grad():
@@ -88,11 +88,12 @@ def train_cnn_model(model, num_epochs,
                     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Train Acc: {:.2f}, Test Acc: {:.2f}'
                            .format(epoch+1, num_epochs,
                                    i+1, len(train_loader),
-                                   loss.item(), accuracy.item(), test_accuracy))
+                                   loss.item(), train_accuracy.item(), test_accuracy))
 
                 if logging:
-                    update_logger(logger, epoch, i, loss, accuracy, model,
-                                  images, train_loader)
+                    update_logger(logger, epoch, i, loss,
+                                  train_accuracy, test_accuracy,
+                                  model, images, train_loader)
 
 
 if __name__ == "__main__":
