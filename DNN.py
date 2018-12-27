@@ -13,7 +13,7 @@ from helpers import init_weights, get_data, report
 
 # Fully connected neural network with one hidden layer
 class DNN(nn.Module):
-    def __init__(self, h_sizes=[784, 500], out_size=10):
+    def __init__(self, h_sizes=[784, 500], out_size=10, verbose=False):
         super(DNN, self).__init__()
 
         self.layers = nn.ModuleList()
@@ -23,7 +23,8 @@ class DNN(nn.Module):
         self.layers.append(nn.Linear(h_sizes[k+1], out_size))
         # Xavier initialization of first
         init_weights(self.layers)
-        self.print_architecture()
+        if verbose:
+            self.print_architecture()
 
     def forward(self, x):
         out = x
@@ -37,7 +38,8 @@ class DNN(nn.Module):
 
 
 def train_dnn_model(model, num_epochs,
-                    X, y, device, optimizer, criterion,
+                    X, y, batch_size,
+                    device, optimizer, criterion,
                     model_fname ="temp_model.ckpt",
                     verbose=True, logging=True):
     logger = Logger('./logs')
@@ -60,28 +62,21 @@ def train_dnn_model(model, num_epochs,
         train_out = train_step(model, dataset_train, batch_size=batch_size,
                                device=device, criterion=criterion,
                                optimizer=optimizer)
-        report(y=y_train, epoch=epoch, training=True, **train_out)
+        train_loss, train_acc = report(verbose, y=y_train, epoch=epoch,
+                                       training=True, **train_out)
 
         valid_out = valid_step(model, dataset_valid, batch_size=batch_size,
                                device=device, criterion=criterion)
-        report(y=y_valid, epoch=epoch, training=False, **valid_out)
+        valid_loss, valid_acc = report(verbose, y=y_valid, epoch=epoch,
+                                       training=False, **valid_out)
 
-        print('-' * 50)
         # Save the model checkpoint
         torch.save(model.state_dict(), model_fname)
 
-        # if verbose:
-        #     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Train Acc: {:.2f}, Test Acc: {:.2f}'
-        #            .format(epoch+1, num_epochs,
-        #                    i+1, len(train_loader),
-        #                    loss.item(),
-        #                    train_accuracy.item(),
-        #                    test_accuracy))
-        #
-        # if logging:
-        #     update_logger(logger, epoch, i, loss,
-        #                   train_accuracy, test_accuracy,
-        #                   model, images, train_loader)
+        if logging:
+            update_logger(logger, epoch+1, (epoch+1)*len(dataset_train),
+                          train_loss, valid_loss, train_acc, valid_acc,
+                          model)
 
     return model
 
@@ -145,6 +140,40 @@ model.load_state_dict(torch.load(PATH))
 model.eval()
 """
 
+def eval_dnn():
+    # Device configuration
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Define batchsize for data-loading
+    batch_size = 100
+
+    # MNIST dataset
+    X, X_test, y, y_test = get_data(num_samples=70000)
+    # Feedforward Neural Network Parameters
+    num_epochs = 5
+
+    # Instantiate the model with layersize and Logging directory
+    dnn_model = DNN(h_sizes=[784, 500], out_size=10)
+
+    # Loss and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(dnn_model.parameters(), lr=0.001)
+
+    # Train the network
+    model = train_dnn_model(dnn_model, num_epochs,
+                            X, y, batch_size,
+                            device, optimizer, criterion,
+                            model_fname ="models/temp_model_dnn.ckpt",
+                            verbose=False, logging=False)
+
+    # Compute accuracy on hold-out set
+    X_test = X_test.reshape(X_test.shape[0], 28*28)
+    X_test = torch.tensor(X_test).to(device)
+    with torch.no_grad():
+        y_pred = model(X_test).cpu().numpy().argmax(1)
+    return accuracy_score(y_test, y_pred)
+
+
 if __name__ == "__main__":
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -153,26 +182,25 @@ if __name__ == "__main__":
     batch_size = 100
 
     # MNIST dataset
-    X, X_test, y, y_test = get_data(num_samples=20000)
-
+    X, X_test, y, y_test = get_data(num_samples=70000)
     # Feedforward Neural Network Parameters
     num_epochs = 5
 
     # Instantiate the model with layersize and Logging directory
     dnn_model = DNN(h_sizes=[784, 500, 300, 100], out_size=10)
-    logger = Logger('./logs')
 
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(dnn_model.parameters(), lr=0.001)
 
     model = train_dnn_model(dnn_model, num_epochs,
-                    X, y,
-                    device, optimizer, criterion,
-                    model_fname ="models/temp_model_dnn.ckpt",
-                    verbose=True, logging=True)
+                            X, y, batch_size,
+                            device, optimizer, criterion,
+                            model_fname ="models/temp_model_dnn.ckpt",
+                            verbose=True, logging=True)
 
-    # X_test = torch.tensor(X_test).to(device)
-    # with torch.no_grad():
-    #     y_pred = model(X_test).cpu().numpy().argmax(1)
-    # print(accuracy_score(y_test, y_pred))
+    X_test = X_test.reshape(X_test.shape[0], 28*28)
+    X_test = torch.tensor(X_test).to(device)
+    with torch.no_grad():
+        y_pred = model(X_test).cpu().numpy().argmax(1)
+    print(accuracy_score(y_test, y_pred))
