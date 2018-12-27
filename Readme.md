@@ -15,7 +15,7 @@ This project analyzes different learning rules in deep layered structures. More 
 ## TODO:
 
 * [ ] Set up bayesian optimization pipeline - BayesianOptimization
-    * [ ] implement cross-validation with torch data
+    * [ ] implement cross-validation with torch data/skorch
     * [ ] one fct taking in hyperparams, return objective
 * [ ] Extend to different datasets - CIFAR 10
 * [ ] Try paperspace/remote gpu testing

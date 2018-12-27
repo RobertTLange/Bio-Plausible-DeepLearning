@@ -48,6 +48,8 @@ def train_cnn_model(model, num_epochs,
                     verbose=True, logging=True):
     logger = Logger('./logs')
 
+    model.to(device)
+
     for epoch in range(num_epochs):
         for i, (images, labels) in enumerate(train_loader):
             # Move tensors to the configured device
