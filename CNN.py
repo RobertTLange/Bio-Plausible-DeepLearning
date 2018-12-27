@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-from logger import Logger, update_logger
 
+from logger import Logger, update_logger
+from helpers import init_weights
 
 class CNN(nn.Module):
     def __init__(self, ch_sizes, k_sizes, stride, padding, out_size):
@@ -22,6 +23,8 @@ class CNN(nn.Module):
 
         self.layers.append(nn.Linear((k_sizes[-1] + 2)**2*ch_sizes[-1], out_size))
 
+        # Xavier initialization of first
+        init_weights(self.layers)
         self.print_architecture()
 
     def forward(self, x):

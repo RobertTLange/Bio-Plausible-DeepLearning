@@ -118,7 +118,7 @@ def process_logger(log_fname, save_fname=None):
                 test_accuracies.append(v.simple_value)
         iterations.append(int(e.step))
 
-    iterations = np.unique(iteration)[1:]
+    iterations = np.unique(iterations)[1:]
 
     if save_fname is not None:
         out_array = np.array([iterations, losses,

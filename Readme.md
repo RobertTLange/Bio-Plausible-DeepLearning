@@ -9,19 +9,20 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Create remote repo
 * [x] Generalize network architecture to variable inputs
 * [x] Write update_logger, process_logger function
+* [x] Plot learning curves - output from logger
+* [x] Add Xavier init for networks
 
 ## TODO:
 
-* [ ] Plot learning curves - output from logger
+* [ ] Set up bayesian optimization pipeline - BayesianOptimization
+    * [ ] implement cross-validation with torch data
+    * [ ] one fct taking in hyperparams, return objective
 * [ ] Extend to different datasets - CIFAR 10
 * [ ] Try paperspace/remote gpu testing
 * [ ] Read papers
 * [ ] Add first notes of papers
     * Lillicrap original
     * Bartunov
-* [ ] Set up bayesian optimization pipeline
-    * Need to rewrite - one function taking in hyperparams and returning objective
-
 
 ## Structure of Report:
 

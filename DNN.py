@@ -3,6 +3,7 @@ import torch.nn as nn
 import torchvision
 from torchvision import transforms
 from logger import Logger, update_logger
+from helpers import init_weights
 
 # Fully connected neural network with one hidden layer
 class DNN(nn.Module):
@@ -13,7 +14,8 @@ class DNN(nn.Module):
             self.layers.append(nn.Linear(h_sizes[k], h_sizes[k+1]))
             self.layers.append(nn.ReLU())
         self.layers.append(nn.Linear(h_sizes[k+1], out_size))
-
+        # Xavier initialization of first
+        init_weights(self.layers)
         self.print_architecture()
 
     def forward(self, x):
@@ -86,6 +88,15 @@ def train_dnn_model(model, num_epochs,
                                   train_accuracy, test_accuracy,
                                   model, images, train_loader)
 
+
+def evaluate_dnn():
+    return
+
+"""
+model = DNN(*args, **kwargs)
+model.load_state_dict(torch.load(PATH))
+model.eval()
+"""
 
 if __name__ == "__main__":
     # Device configuration
