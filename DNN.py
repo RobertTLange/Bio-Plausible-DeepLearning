@@ -11,7 +11,8 @@ from sklearn.metrics import accuracy_score
 from logger import Logger, update_logger
 from helpers import init_weights, get_data, report
 
-# Fully connected neural network with one hidden layer
+
+# Fully connected neural network with hidden layers
 class DNN(nn.Module):
     def __init__(self, h_sizes=[784, 500], out_size=10, verbose=False):
         super(DNN, self).__init__()
@@ -110,6 +111,7 @@ def train_step(model, dataset, device, criterion, batch_size, optimizer):
 
 
 def valid_step(model, dataset, device, criterion, batch_size):
+
     model.eval()
     y_preds = []
     losses = []
@@ -140,33 +142,45 @@ model.load_state_dict(torch.load(PATH))
 model.eval()
 """
 
-def eval_dnn():
+def eval_dnn(batch_size, h_sizes, learning_rate, k_fold=5, verbose=False):
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # Define batchsize for data-loading
-    batch_size = 100
-
-    # MNIST dataset
-    X, X_test, y, y_test = get_data(num_samples=70000)
     # Feedforward Neural Network Parameters
     num_epochs = 5
+    # Initialize list to store cross_val accuracies
+    scores = []
+    # Load dataset
+    X, y = get_data(num_samples=70000)
 
-    # Instantiate the model with layersize and Logging directory
-    dnn_model = DNN(h_sizes=[784, 500], out_size=10)
+    # Split original dataset into folds (return idx)
+    kf = StratifiedKFold(n_splits=k_fold, random_state=0)
+    kf.get_n_splits(X)
 
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(dnn_model.parameters(), lr=0.001)
+    for sub_index, test_index in kf.split(X, y):
+        X_sub, X_test = X[sub_index], X[test_index]
+        y_sub, y_test = y[sub_index], y[test_index]
 
-    # Train the network
-    model = train_dnn_model(dnn_model, num_epochs,
-                            X, y, batch_size,
-                            device, optimizer, criterion,
-                            model_fname ="models/temp_model_dnn.ckpt",
-                            verbose=False, logging=False)
+        # Instantiate the model with layersize and Logging directory
+        dnn_model = DNN(h_sizes, out_size=10)
+        # Loss and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(dnn_model.parameters(), lr=learning_rate)
 
-    # Compute accuracy on hold-out set
+        # Train the network
+        model = train_dnn_model(dnn_model, num_epochs,
+                                X_sub, y_sub, batch_size,
+                                device, optimizer, criterion,
+                                model_fname ="models/temp_model_dnn.ckpt",
+                                verbose=False, logging=False)
+
+        # Compute accuracy on hold-out set
+        score_temp = get_test_error(device, model, X_test, y_test)
+        print(score_temp)
+        scores.append(score_temp)
+    return np.mean(scores)
+
+
+def get_test_error(device, model, X_test, y_test):
     X_test = X_test.reshape(X_test.shape[0], 28*28)
     X_test = torch.tensor(X_test).to(device)
     with torch.no_grad():
@@ -182,7 +196,11 @@ if __name__ == "__main__":
     batch_size = 100
 
     # MNIST dataset
-    X, X_test, y, y_test = get_data(num_samples=70000)
+    X, y = get_data(num_samples=70000)
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                        stratify=y,
+                                                        random_state=0)
+
     # Feedforward Neural Network Parameters
     num_epochs = 5
 
@@ -199,8 +217,6 @@ if __name__ == "__main__":
                             model_fname ="models/temp_model_dnn.ckpt",
                             verbose=True, logging=True)
 
-    X_test = X_test.reshape(X_test.shape[0], 28*28)
-    X_test = torch.tensor(X_test).to(device)
-    with torch.no_grad():
-        y_pred = model(X_test).cpu().numpy().argmax(1)
-    print(accuracy_score(y_test, y_pred))
+    # Get test error
+    score = get_test_error(device, model, X_test, y_test)
+    print("Test Accuracy: {}".format(score))

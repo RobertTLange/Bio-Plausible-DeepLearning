@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.datasets import fetch_mldata
-from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
 
@@ -16,10 +15,8 @@ def get_data(num_samples):
     y = mnist.target.astype('int64')
     X, y = shuffle(X, y)
     X, y = X[:num_samples], y[:num_samples]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=0)
-    X_train /= 255
-    X_test /= 255
-    return X_train, X_test, y_train, y_test
+    X /= 255
+    return X, y
 
 
 def init_weights(m):
