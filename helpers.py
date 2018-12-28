@@ -62,3 +62,12 @@ def report(verbose, losses, batch_sizes, y, y_proba, epoch, time, training=True)
             print('-' * 50)
 
     return loss, acc
+
+
+def check_next_point_dnn(next_point):
+    batch_size = int(round(batch_size))
+    num_layers = int(round(num_layers))
+    h_sizes = [784, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
+    h_sizes = map(int, map(round, h_sizes))
+
+    return next_point_clean

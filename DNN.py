@@ -137,12 +137,29 @@ def valid_step(model, dataset, device, criterion, batch_size):
     }
 
 """
+# Reload model and set into eval/prediction mode
 model = DNN(*args, **kwargs)
 model.load_state_dict(torch.load(PATH))
 model.eval()
 """
 
-def eval_dnn(batch_size, h_sizes, learning_rate, k_fold=5, verbose=False):
+def eval_dnn(batch_size, learning_rate,
+             num_layers=2, h_l_1=500, h_l_2=0, h_l_3=0,
+             h_l_4=0, h_l_5=0, h_l_6=0,
+             k_fold=3, verbose=False):
+    # Assert/Enforce that params have correct type (dicrete/continuous) for BO
+    batch_size = int(round(batch_size))
+    num_layers = int(round(num_layers))
+    h_sizes = [784, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
+    h_sizes = map(int, map(round, h_sizes))
+
+    if verbose:
+        print("Batchsize: {}".format(batch_size))
+        print("Learning Rate: {}".format(learning_rate))
+        print("Architecture of Cross-Validated Network:")
+        for i in range(len(h_sizes)):
+            print("\t Layer {}: {} Units".format(i, h_sizes[i]))
+
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Feedforward Neural Network Parameters
@@ -155,6 +172,7 @@ def eval_dnn(batch_size, h_sizes, learning_rate, k_fold=5, verbose=False):
     # Split original dataset into folds (return idx)
     kf = StratifiedKFold(n_splits=k_fold, random_state=0)
     kf.get_n_splits(X)
+    counter = 1
 
     for sub_index, test_index in kf.split(X, y):
         X_sub, X_test = X[sub_index], X[test_index]
@@ -175,8 +193,12 @@ def eval_dnn(batch_size, h_sizes, learning_rate, k_fold=5, verbose=False):
 
         # Compute accuracy on hold-out set
         score_temp = get_test_error(device, model, X_test, y_test)
-        print(score_temp)
         scores.append(score_temp)
+
+        if verbose:
+            print("Cross-Validation Score Fold {}: {}".format(counter,
+                                                              score_temp))
+            counter += 1
     return np.mean(scores)
 
 
