@@ -1,13 +1,19 @@
+import time
+import numpy as np
+
 import torch
 import torch.nn as nn
-import numpy as np
-import matplotlib.pyplot as plt
 
 from sklearn.datasets import fetch_mldata
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
+from logger import Logger, update_logger
 
+"""
+- Dataset specific helpers
+"""
 def get_data(num_samples):
     mnist = fetch_mldata('MNIST original')
     torch.manual_seed(0)
@@ -19,6 +25,12 @@ def get_data(num_samples):
     return X, y
 
 
+"""
+- Modeling specific helpers
+    a. Xavier initialization of all layers
+    b. Accuracy computation on hold out set
+    c. Compute and report learning stats
+"""
 def init_weights(m):
     if type(m) == nn.Linear:
         torch.nn.init.xavier_uniform(m.weight)
@@ -51,23 +63,115 @@ def report(verbose, losses, batch_sizes, y, y_proba, epoch, time, training=True)
 
     return loss, acc
 
-# Define plot helper functions
-def plot_learning(its, train_acc, val_acc, train_loss, val_loss, title):
-    fig, ax1 = plt.subplots()
-    ax1.set_xlabel('Iteration')
-    ax1.set_ylabel('Accuracy')
-    l1 = ax1.plot(its, train_acc, c="r", label="Train Accuracy")
-    l2 = ax1.plot(its, val_acc, c="g", label="Validation Accuracy")
 
-    ax2 = ax1.twinx()
-    ax2.set_ylabel('Loss')
-    l3 = ax2.plot(its, train_loss, c="b", label="Train Loss")
-    l4 = ax2.plot(its, val_loss, c="y", label="Validation Loss")
+def train_model(model_type, model, num_epochs,
+                X, y, batch_size,
+                device, optimizer, criterion,
+                model_fname ="temp_model_dnn.ckpt",
+                verbose=True, logging=True):
+    logger = Logger('./logs')
 
-    lns = l1 + l2 + l3 + l4
-    labs = [l.get_label() for l in lns]
-    ax1.legend(lns, labs, loc=7)
+    model.to(device)
 
-    plt.title(title)
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    plt.show()
+    # Select data
+    idx_train, idx_valid = next(iter(StratifiedKFold(5, random_state=0).split(np.arange(len(X)), y)))
+
+    if model_type == "dnn":
+        X_train, X_valid, y_train, y_valid = (np.squeeze(X[idx_train]),
+                                              np.squeeze(X[idx_valid]),
+                                              y[idx_train], y[idx_valid])
+    elif model_type == "cnn":
+        # No squeze here needed - keep full dimensionality
+        X_train, X_valid, y_train, y_valid = (X[idx_train],
+                                              X[idx_valid],
+                                              y[idx_train], y[idx_valid])
+
+    dataset_train = torch.utils.data.TensorDataset(torch.tensor(X_train),
+                                                   torch.tensor(y_train))
+    dataset_valid = torch.utils.data.TensorDataset(torch.tensor(X_valid),
+                                                   torch.tensor(y_valid))
+
+    for epoch in range(num_epochs):
+
+        train_out = train_step(model_type, model, dataset_train, batch_size=batch_size,
+                               device=device, criterion=criterion,
+                               optimizer=optimizer)
+        train_loss, train_acc = report(verbose, y=y_train, epoch=epoch,
+                                       training=True, **train_out)
+
+        valid_out = valid_step(model_type, model, dataset_valid, batch_size=batch_size,
+                               device=device, criterion=criterion)
+        valid_loss, valid_acc = report(verbose, y=y_valid, epoch=epoch,
+                                       training=False, **valid_out)
+
+        # Save the model checkpoint
+        torch.save(model.state_dict(), model_fname)
+
+        if logging:
+            update_logger(logger, epoch+1, (epoch+1)*len(dataset_train),
+                          train_loss, valid_loss, train_acc, valid_acc,
+                          model)
+
+    return model
+
+
+def train_step(model_type, model, dataset, device, criterion, batch_size, optimizer):
+
+    model.train()
+    y_preds = []
+    losses = []
+    batch_sizes = []
+    tic = time.time()
+
+    for Xi, yi in torch.utils.data.DataLoader(dataset, batch_size=batch_size):
+        if model_type == "dnn":
+            Xi, yi = Xi.reshape(Xi.shape[0], 28*28).to(device), yi.to(device)
+        elif model_type == "cnn":
+            Xi, yi = Xi.to(device), yi.to(device)
+        optimizer.zero_grad()
+        y_pred = model(Xi)
+        loss = criterion(y_pred, yi)
+        loss.backward()
+        optimizer.step()
+
+        y_preds.append(y_pred)
+        losses.append(loss.item())
+        batch_sizes.append(len(Xi))
+    toc = time.time()
+
+    return {
+        'losses': losses,
+        'batch_sizes': batch_sizes,
+        'y_proba': torch.cat(y_preds).cpu().detach().numpy(),
+        'time': toc - tic,
+    }
+
+
+def valid_step(model_type, model, dataset, device, criterion, batch_size):
+
+    model.eval()
+    y_preds = []
+    losses = []
+    batch_sizes = []
+    tic = time.time()
+    with torch.no_grad():
+        for Xi, yi in torch.utils.data.DataLoader(dataset, batch_size=batch_size):
+            if model_type == "dnn":
+                Xi, yi = Xi.reshape(Xi.shape[0], 28*28).to(device), yi.to(device)
+            elif model_type == "cnn":
+                Xi, yi = Xi.to(device), yi.to(device)
+            y_pred = model(Xi)
+            loss = criterion(y_pred, yi)
+
+            y_preds.append(y_pred)
+            loss = loss.item()
+            losses.append(loss)
+            batch_sizes.append(len(Xi))
+    toc = time.time()
+
+    return {
+        'losses': losses,
+        'batch_sizes': batch_sizes,
+        'y_proba': torch.cat(y_preds).cpu().detach().numpy(),
+        'time': toc - tic,
+    }

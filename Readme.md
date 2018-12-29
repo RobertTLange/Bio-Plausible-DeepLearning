@@ -11,6 +11,7 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Write update_logger, process_logger function
 * [x] Plot learning curves - output from logger
 * [x] Add Xavier init for networks
+* [x] Rewrite architecture and simplify code
 
 ## TODO:
 
@@ -27,6 +28,7 @@ This project analyzes different learning rules in deep layered structures. More 
 * [ ] Add first notes of papers
     * Lillicrap original
     * Bartunov
+* [ ] Add comments! - Look up pep8 standard for fcts/classes
 
 ## Structure of Report:
 
