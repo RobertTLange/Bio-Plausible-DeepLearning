@@ -5,11 +5,11 @@ from torchvision import transforms
 
 import time
 import numpy as np
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
 
 from logger import Logger, update_logger
-from helpers import init_weights, get_data, report
+from helpers import init_weights, get_data, report, get_test_error
 
 # Dont print depreciation warning
 import warnings
@@ -44,7 +44,7 @@ class DNN(nn.Module):
 def train_dnn_model(model, num_epochs,
                     X, y, batch_size,
                     device, optimizer, criterion,
-                    model_fname ="temp_model.ckpt",
+                    model_fname ="temp_model_dnn.ckpt",
                     verbose=True, logging=True):
     logger = Logger('./logs')
 
@@ -191,7 +191,7 @@ def eval_dnn(batch_size, learning_rate,
                                 verbose=False, logging=False)
 
         # Compute accuracy on hold-out set
-        score_temp = get_test_error(device, model, X_test, y_test)
+        score_temp = get_test_error("dnn", device, model, X_test, y_test)
         scores.append(score_temp)
 
         if verbose:
@@ -199,14 +199,6 @@ def eval_dnn(batch_size, learning_rate,
                                                               score_temp))
             counter += 1
     return np.mean(scores)
-
-
-def get_test_error(device, model, X_test, y_test):
-    X_test = X_test.reshape(X_test.shape[0], 28*28)
-    X_test = torch.tensor(X_test).to(device)
-    with torch.no_grad():
-        y_pred = model(X_test).cpu().numpy().argmax(1)
-    return accuracy_score(y_test, y_pred)
 
 
 if __name__ == "__main__":
@@ -239,5 +231,5 @@ if __name__ == "__main__":
                             verbose=True, logging=True)
 
     # Get test error
-    score = get_test_error(device, model, X_test, y_test)
+    score = get_test_error("dnn", device, model, X_test, y_test)
     print("Test Accuracy: {}".format(score))

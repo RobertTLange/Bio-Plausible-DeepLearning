@@ -18,8 +18,10 @@ This project analyzes different learning rules in deep layered structures. More 
     * [x] implement cross-validation with torch data/skorch
     * [x] one fct taking in hyperparams, return objective
     * [x] write fct that transforms cont variables to discrete
+    + [ ] check how to add folds/add input to eval_dnn, BO pipeline
+* [ ] Generalize BO pipeline to CNN
 * [ ] Get Guergiev Code running/understand
-* [ ] Extend to different datasets - FashionMNIST, CIFAR 10
+* [ ] get_data - Different datasets - FashionMNIST, CIFAR 10
 * [ ] Try paperspace/remote gpu testing
 * [ ] Read papers
 * [ ] Add first notes of papers

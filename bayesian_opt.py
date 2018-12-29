@@ -1,14 +1,16 @@
+import time
 # Import Bayesian Optimization Module
 from bayes_opt import BayesianOptimization, UtilityFunction
 
 # Import Network Architectures
 from DNN import eval_dnn
+from CNN import eval_cnn
 
 # Dont print depreciation warning
 import warnings
 warnings.filterwarnings("ignore")
 
-def BO_NN(num_evals, eval_func, hyper_space):
+def BO_NN(num_evals, eval_func, hyper_space, verbose):
     optimizer = BayesianOptimization(
         f=eval_func,
         pbounds=hyper_space,
@@ -18,14 +20,20 @@ def BO_NN(num_evals, eval_func, hyper_space):
 
     utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0.0)
 
+    # Define printing template for verbose
+    template = "BO iter {:>2} | cv-acc: {:.4f} | best-acc: {:.4f} | time: {:.2f}"
+
     for _ in range(num_evals):
+        tic = time.time()
         next_point = optimizer.suggest(utility)
         next_point = check_next_point_dnn(next_point)
         target = eval_dnn(**next_point)
         optimizer.register(params=next_point, target=target)
-        print(target, next_point)
+        time_t = time.time() - tic
 
-    return(optimizer.max)
+        if verbose:
+            print(template.format(_ + 1, target, optimizer.max['target'], time_t))
+    return optimizer
 
 
 def check_next_point_dnn(next_point):

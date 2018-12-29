@@ -25,6 +25,33 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
+def get_test_error(model_type, device, model, X_test, y_test):
+    if model_type == "dnn":
+        X_test = X_test.reshape(X_test.shape[0], 28*28)
+    X_test = torch.tensor(X_test).to(device)
+    with torch.no_grad():
+        y_pred = model(X_test).cpu().numpy().argmax(1)
+    return accuracy_score(y_test, y_pred)
+
+
+def report(verbose, losses, batch_sizes, y, y_proba, epoch, time, training=True):
+    template = "{} | epoch {:>2} | "
+
+    loss = np.average(losses, weights=batch_sizes)
+    y_pred = np.argmax(y_proba, axis=1)
+    acc = accuracy_score(y, y_pred)
+
+    template += "acc: {:.4f} | loss: {:.4f} | time: {:.2f}"
+
+    if verbose:
+        print(template.format(
+              'train' if training else 'valid', epoch + 1, acc, loss, time))
+        if not training:
+            print('-' * 50)
+
+    return loss, acc
+
+# Define plot helper functions
 def plot_learning(its, train_acc, val_acc, train_loss, val_loss, title):
     fig, ax1 = plt.subplots()
     ax1.set_xlabel('Iteration')
@@ -44,21 +71,3 @@ def plot_learning(its, train_acc, val_acc, train_loss, val_loss, title):
     plt.title(title)
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
-
-
-def report(verbose, losses, batch_sizes, y, y_proba, epoch, time, training=True):
-    template = "{} | epoch {:>2} | "
-
-    loss = np.average(losses, weights=batch_sizes)
-    y_pred = np.argmax(y_proba, axis=1)
-    acc = accuracy_score(y, y_pred)
-
-    template += "acc: {:.4f} | loss: {:.4f} | time: {:.2f}"
-
-    if verbose:
-        print(template.format(
-              'train' if training else 'valid', epoch + 1, acc, loss, time))
-        if not training:
-            print('-' * 50)
-
-    return loss, acc
