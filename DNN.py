@@ -11,6 +11,9 @@ from sklearn.metrics import accuracy_score
 from logger import Logger, update_logger
 from helpers import init_weights, get_data, report
 
+# Dont print depreciation warning
+import warnings
+warnings.filterwarnings("ignore")
 
 # Fully connected neural network with hidden layers
 class DNN(nn.Module):
@@ -147,11 +150,7 @@ def eval_dnn(batch_size, learning_rate,
              num_layers=2, h_l_1=500, h_l_2=0, h_l_3=0,
              h_l_4=0, h_l_5=0, h_l_6=0,
              k_fold=3, verbose=False):
-    # Assert/Enforce that params have correct type (dicrete/continuous) for BO
-    batch_size = int(round(batch_size))
-    num_layers = int(round(num_layers))
     h_sizes = [784, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
-    h_sizes = map(int, map(round, h_sizes))
 
     if verbose:
         print("Batchsize: {}".format(batch_size))
