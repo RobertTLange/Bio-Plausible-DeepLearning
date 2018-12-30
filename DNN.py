@@ -91,6 +91,10 @@ def eval_dnn(batch_size, learning_rate, num_layers=2,
         score_temp = get_test_error("dnn", device, model, X_test, y_test)
         scores.append(score_temp)
 
+        # Clean memory after eval!
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         if verbose:
             print("Cross-Validation Score Fold {}: {}".format(counter,
                                                               score_temp))

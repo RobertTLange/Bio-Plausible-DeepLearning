@@ -27,6 +27,7 @@ def BO_NN(num_evals, eval_func, hyper_space, verbose):
         tic = time.time()
         next_point = optimizer.suggest(utility)
         next_point = check_next_point_dnn(next_point)
+        print(next_point)
         target = eval_func(**next_point)
         optimizer.register(params=next_point, target=target)
         time_t = time.time() - tic

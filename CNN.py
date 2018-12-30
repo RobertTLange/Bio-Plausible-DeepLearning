@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
+# from torchsummary import summary
 
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
@@ -21,17 +22,23 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         self.layers = nn.ModuleList()
 
+        W_in = 28
+
         for k in range(len(ch_sizes) - 1):
             self.layers.append(nn.Conv2d(in_channels=ch_sizes[k],
                                          out_channels=ch_sizes[k+1],
                                          kernel_size=k_sizes[k],
                                          stride=stride,
                                          padding=padding))
+
+            W_in = self.update_tensor_dim(W_in, k_sizes[k], padding, stride)
             self.layers.append(nn.BatchNorm2d(ch_sizes[k+1]))
             self.layers.append(nn.ReLU())
             self.layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+            W_in = self.update_tensor_dim(W_in, 2, 0, 2)
+            print(W_in)
 
-        self.layers.append(nn.Linear((k_sizes[-1] + padding + 1)**2*ch_sizes[-1], out_size))
+        self.layers.append(nn.Linear(W_in**2*ch_sizes[-1], out_size))
         # Xavier initialization of first
         init_weights(self.layers)
         if verbose:
@@ -46,6 +53,9 @@ class CNN(nn.Module):
         out = self.layers[-1](out)
         return out
 
+    def update_tensor_dim(self, W_in, k_size, padding, stride):
+        return (W_in - k_size + 2*padding)/stride + 1
+
     def print_architecture(self):
         for layer in self.layers:
             print(layer)
@@ -55,7 +65,7 @@ def eval_cnn(batch_size, learning_rate, num_layers=2,
              ch_1=16, ch_2=32, ch_3=0, ch_4=0, ch_5=0,
              k_1=5, k_2=5, k_3=0, k_4=0, k_5=0,
              stride=1, padding=2,
-             num_epochs=1, k_fold=3, verbose=False):
+             num_epochs=5, k_fold=3, verbose=False):
 
     # be careful with feeding only 1 channel - cifar has 3rgb
     ch_sizes = [1, ch_1, ch_2, ch_3, ch_4, ch_5][:(num_layers+1)]
@@ -102,6 +112,10 @@ def eval_cnn(batch_size, learning_rate, num_layers=2,
         score_temp = get_test_error("cnn", device, model, X_test, y_test)
         scores.append(score_temp)
 
+        # Clean memory after eval!
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         if verbose:
             print("Cross-Validation Score Fold {}: {}".format(counter,
                                                               score_temp))
@@ -125,8 +139,10 @@ if __name__ == "__main__":
     num_epochs = 2
 
     # Instantiate the model with layersize and Logging directory
-    cnn_model = CNN(ch_sizes=[1, 16, 32], k_sizes=[5, 5],
+    cnn_model = CNN(ch_sizes=[1, 16, 25], k_sizes=[3, 5],
                     stride=1, padding=2, out_size=10).to(device)
+
+    print(cnn_model)
 
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
