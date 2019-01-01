@@ -1,0 +1,109 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+% \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2018
+
+\usepackage[final]{nips_2018}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+
+%-----------------------------------------------------------------
+\usepackage{pdfpages}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{calc}
+
+\usepackage{color}
+\usepackage[font=small,labelfont=bf]{caption}
+%----------------
+\usepackage{algorithm,algorithmicx,algpseudocode}
+\algnewcommand\algorithmicinput{\textbf{Input:}}
+\algnewcommand\INPUT{\item[\algorithmicinput]}
+\algnewcommand\algorithmicoutput{\textbf{Output:}}
+\algnewcommand\OUTPUT{\item[\algorithmicoutput]}
+\algnewcommand\algorithmicidea{\textbf{Idea:}}
+\algnewcommand\IDEA{\item[\algorithmicidea]}
+\algnewcommand\algorithmicinit{\textbf{Initialize:}}
+\algnewcommand\INIT{\item[\algorithmicinit]}
+%----------------
+
+\usepackage{amsthm}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+ 
+%-----------------------------------------------------------------
+\title{Models of Neural Systems (WiSe 2018/2019)\\
+	   Final Project - Computer Practical \\
+	   Biologically Plausible Deep Learning}
+
+\author{
+  Robert T. Lange \thanks{This progress report was submitted as part of the final project of .} \\
+  Einstein Center for Neurosciences Berlin\\
+  \texttt{robert.lange17@imperial.ac.uk} \\
+}
+
+\begin{document}
+
+
+\maketitle
+
+%--------------------------------------------------------------------
+
+\begin{abstract}
+Backpropagation is the backbone of modern Deep Learning.
+\end{abstract}
+
+%--------------------------------------------------------------------
+\section{Introduction}
+
+
+%--------------------------------------------------------------------
+\section{Credit Assignment in Deep Layered Structures}
+
+\subsection*{Backpropagation: A Successful Deep Learning Perspective}
+
+\subsection*{Backpropagation: A Critical Neuroscience Perspective}
+
+\subsection*{Synaptic Integration via Compartmental Dendrites}
+
+\subsection*{\citet{guerguiev2017} - A Plausible Alternative?}
+
+%--------------------------------------------------------------------
+\section{Empirical Investigations}
+
+\subsection*{Scalability Across Datasets}
+
+\subsection*{Hyperparameter Robustness}
+
+%--------------------------------------------------------------------
+\section{Related Literature}
+
+\subsection*{\citet{lillicrap2016} - Feedback Alignment}
+
+\subsection*{\citet{bartunov2018} - Target Propagation}
+
+\subsection*{\citet{sacramento2018} - Dendritic Microcircuits}
+
+
+%--------------------------------------------------------------------
+\section{Outlook and Conclusion}
+
+
+%--------------------------------------------------------------------
+\newpage
+\setlength{\bibsep}{4pt plus 0.3ex}
+
+\bibliographystyle{ecta}%plainnat - dinat - aer - econometrics
+{\footnotesize \bibliography{main.bib}}
+\end{document}

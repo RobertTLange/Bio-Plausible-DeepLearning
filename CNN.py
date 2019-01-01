@@ -31,12 +31,11 @@ class CNN(nn.Module):
                                          stride=stride,
                                          padding=padding))
 
-            W_in = self.update_tensor_dim(W_in, k_sizes[k], padding, stride)
+            W_in = update_tensor_dim(W_in, k_sizes[k], padding, stride)
             self.layers.append(nn.BatchNorm2d(ch_sizes[k+1]))
             self.layers.append(nn.ReLU())
             self.layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
-            W_in = self.update_tensor_dim(W_in, 2, 0, 2)
-            print(W_in)
+            W_in = update_tensor_dim(W_in, 2, 0, 2)
 
         self.layers.append(nn.Linear(W_in**2*ch_sizes[-1], out_size))
         # Xavier initialization of first
@@ -53,19 +52,18 @@ class CNN(nn.Module):
         out = self.layers[-1](out)
         return out
 
-    def update_tensor_dim(self, W_in, k_size, padding, stride):
-        return (W_in - k_size + 2*padding)/stride + 1
-
     def print_architecture(self):
         for layer in self.layers:
             print(layer)
 
+def update_tensor_dim(W_in, k_size, padding, stride):
+    return (W_in - k_size + 2*padding)/stride + 1
 
 def eval_cnn(batch_size, learning_rate, num_layers=2,
              ch_1=16, ch_2=32, ch_3=0, ch_4=0, ch_5=0,
              k_1=5, k_2=5, k_3=0, k_4=0, k_5=0,
              stride=1, padding=2,
-             num_epochs=5, k_fold=3, verbose=False):
+             num_epochs=1, k_fold=2, verbose=False):
 
     # be careful with feeding only 1 channel - cifar has 3rgb
     ch_sizes = [1, ch_1, ch_2, ch_3, ch_4, ch_5][:(num_layers+1)]
@@ -83,7 +81,7 @@ def eval_cnn(batch_size, learning_rate, num_layers=2,
     # Initialize list to store cross_val accuracies
     scores = []
     # Load dataset
-    X, y = get_data(num_samples=70000)
+    X, y = get_data(num_samples=100)
 
     # Split original dataset into folds (return idx)
     kf = StratifiedKFold(n_splits=k_fold, random_state=0)

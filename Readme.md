@@ -21,24 +21,47 @@ This project analyzes different learning rules in deep layered structures. More 
     * [x] write fct that transforms cont variables to discrete
     * [ ] check how to add folds/add input to eval_nn, BO pipeline
  	* [x] Generalize BO pipeline to CNN
+    * [ ] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
+    * [ ] Add logging to BO pipeline
 * [ ] Get Guergiev Code running/understand
+* [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] get_data - Different datasets - FashionMNIST, CIFAR 10
+* [ ] Add comments! - Look up pep8 standard for fcts/classes
+* [ ] Work on weight visualization
+
 
 ## TODO - REPORT:
-* [ ] Read papers
-* [ ] Add first notes of papers
-* [ ] Add comments! - Look up pep8 standard for fcts/classes
+* [ ] Read papers/Add first notes of papers
+    * [x] Lillicrap et al (2016)
+    * [ ] Guergiev et al (2017)
+    * [x] Bartunov et al (2018)
+    * [ ] Sacramento et al (2018)
+* [ ] Add first skeleton of report/sections
 
-## Structure of Report:
+## Repository Structure
+```
+Bio-Plausible-DeepLearning
++- workspace.ipynb: Main workspace notebook - Execute for replication
+```
 
-    1. General Intro/Motivation/Structure Outline
-    2. Backpropagation and Compartmental Learning Rules
-        a. Base Theory Introduction
-        b. Problems with bio plausibility
-        c. Pyramidal neurons/Larkum
-        d. Model Guergiev 2017
-    3. Comparison across different datasets
-        a. MNIST
-        b. Fashion-MNIST
-        c. CIFAR10
-    4. Hyperparameter Robustness/Model Selection Analysis
+## How to use this code
+1. Clone the repo.
+```
+git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning && cd Bio-Plausible-DeepLearning
+```
+2. Create a virtual environment (optional but recommended).
+```
+virtualenv -p python BPDL
+```
+Activate the env (the following command works on Linux, other operating systems might differ):
+```
+source BPDL/bin/activate
+```
+3. Install all dependencies:
+```
+pip install -r requirements.txt
+```
+4. Run the main notebook:
+```
+jupyter notebook workspace.ipynb
+```
