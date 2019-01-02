@@ -1,3 +1,4 @@
+import os
 import time
 # Import Bayesian Optimization Module
 from bayes_opt import BayesianOptimization, UtilityFunction
@@ -13,11 +14,13 @@ from CNN import eval_cnn, update_tensor_dim
 import warnings
 warnings.filterwarnings("ignore")
 
-def BO_NN(num_evals, eval_func, func_type, hyper_space, verbose,
-          reload_log_fname=None):
+def BO_NN(num_evals, eval_func, func_type, hyper_space, logging, verbose):
 
-    logger = JSONLogger(path="./logs/bo_logs_"
-                        + time.strftime("%Y%m%d_%H%M%S") + ".json")
+    if logging:
+        log_fname = os.getcwd() + "/logs/bo_logs_" + func_type + ".json"
+        logger = JSONLogger(path=log_fname)
+        if not os.path.isfile(log_fname):
+            print("Start Logging to {}".format(log_fname))
 
     optimizer = BayesianOptimization(
         f=eval_func,
@@ -26,10 +29,12 @@ def BO_NN(num_evals, eval_func, func_type, hyper_space, verbose,
         random_state=1,
     )
 
-    if reload_log_fname is not None:
-        logger = load_logs(optimizer, logs=["/logs/" + reload_log_fname])
+    if os.path.isfile(log_fname) and logging:
+        logger = load_logs(optimizer, logs=[log_fname])
+        print("Continue Logging to {}".format(log_fname))
 
-    optimizer.subscribe(Events.OPTMIZATION_STEP, logger)
+    if logging:
+        optimizer.subscribe(Events.OPTMIZATION_STEP, logger)
 
     utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0.0)
 
@@ -42,10 +47,9 @@ def BO_NN(num_evals, eval_func, func_type, hyper_space, verbose,
         next_point = check_next_point(next_point)
 
         if func_type == "cnn":
-            print(next_point, invalid_kernel_size(next_point, 28))
             while invalid_kernel_size(next_point, 28):
                 next_point = optimizer.suggest(utility)
-                print(next_point)
+                next_point = check_next_point(next_point)
 
         target = eval_func(**next_point)
         optimizer.register(params=next_point, target=target)
@@ -70,6 +74,7 @@ def invalid_kernel_size(next_point, input_size):
     W_in = input_size
     for i in range(len(k_sizes)):
         W_in = update_tensor_dim(W_in, k_sizes[i], padding, stride)
+        W_in = update_tensor_dim(W_in, 2, 0, 2)
         if W_in <= 0:
             return True
     return False

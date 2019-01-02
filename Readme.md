@@ -21,8 +21,8 @@ This project analyzes different learning rules in deep layered structures. More 
     * [x] write fct that transforms cont variables to discrete
     * [ ] check how to add folds/add input to eval_nn, BO pipeline
  	* [x] Generalize BO pipeline to CNN
-    * [ ] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
-    * [ ] Add logging to BO pipeline
+    * [x] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
+    * [x] Add logging to BO pipeline
 * [ ] Get Guergiev Code running/understand
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] get_data - Different datasets - FashionMNIST, CIFAR 10

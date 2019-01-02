@@ -36,7 +36,6 @@ class CNN(nn.Module):
             self.layers.append(nn.ReLU())
             self.layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
             W_in = update_tensor_dim(W_in, 2, 0, 2)
-
         self.layers.append(nn.Linear(W_in**2*ch_sizes[-1], out_size))
         # Xavier initialization of first
         init_weights(self.layers)
