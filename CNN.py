@@ -11,7 +11,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
 
 from logger import Logger, update_logger
-from helpers import init_weights, get_data, get_test_error, train_model
+from helpers import init_weights, get_data, get_test_error, train_model, update_tensor_dim
 
 # Dont print depreciation warning
 import warnings
@@ -55,8 +55,6 @@ class CNN(nn.Module):
         for layer in self.layers:
             print(layer)
 
-def update_tensor_dim(W_in, k_size, padding, stride):
-    return (W_in - k_size + 2*padding)/stride + 1
 
 def eval_cnn(batch_size, learning_rate, num_layers=2,
              ch_1=16, ch_2=32, ch_3=0, ch_4=0, ch_5=0,

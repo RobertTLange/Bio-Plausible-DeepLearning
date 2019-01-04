@@ -1,3 +1,5 @@
+import os
+import gzip
 import time
 import numpy as np
 
@@ -14,11 +16,36 @@ from logger import Logger, update_logger
 """
 - Dataset specific helpers
 """
-def get_data(num_samples):
-    mnist = fetch_mldata('MNIST original')
+def load_mnist(path, kind='train'):
+    """Load MNIST data from `path`"""
+    labels_path = os.path.join(path,
+                               '%s-labels-idx1-ubyte.gz'
+                               % kind)
+    images_path = os.path.join(path,
+                               '%s-images-idx3-ubyte.gz'
+                               % kind)
+
+    with gzip.open(labels_path, 'rb') as lbpath:
+        labels = np.frombuffer(lbpath.read(), dtype=np.uint8,
+                               offset=8)
+
+    with gzip.open(images_path, 'rb') as imgpath:
+        images = np.frombuffer(imgpath.read(), dtype=np.uint8,
+                               offset=16).reshape(len(labels), 784)
+    return images, labels
+
+
+
+def get_data(num_samples, dataset="MNIST"):
+
+    if dataset == "MNIST":
+        data = fetch_mldata('MNIST original')
+    elif dataset == "Fashion-MNIST":
+        data = fetch_mldata('MNIST original')
+
     torch.manual_seed(0)
-    X = mnist.data.astype('float32').reshape(-1, 1, 28, 28)
-    y = mnist.target.astype('int64')
+    X = data.data.astype('float32').reshape(-1, 1, 28, 28)
+    y = data.target.astype('int64')
     X, y = shuffle(X, y)
     X, y = X[:num_samples], y[:num_samples]
     X /= 255
@@ -30,6 +57,8 @@ def get_data(num_samples):
     a. Xavier initialization of all layers
     b. Accuracy computation on hold out set
     c. Compute and report learning stats
+    d. Perform training of model
+    e. Compute dimension of filtered image at next layer
 """
 def init_weights(m):
     if type(m) == nn.Linear:
@@ -175,3 +204,10 @@ def valid_step(model_type, model, dataset, device, criterion, batch_size):
         'y_proba': torch.cat(y_preds).cpu().detach().numpy(),
         'time': toc - tic,
     }
+
+
+def update_tensor_dim(W_in, k_size, padding, stride):
+    return (W_in - k_size + 2*padding)/stride + 1
+
+if __name__ == "__main__":
+    get_data(num_samples=100, dataset="MNIST")

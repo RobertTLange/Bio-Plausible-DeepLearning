@@ -1,26 +1,24 @@
 import os
 import time
+import json
+
 # Import Bayesian Optimization Module
 from bayes_opt import BayesianOptimization, UtilityFunction
-from bayes_opt.observer import JSONLogger
-from bayes_opt.event import Events
 from bayes_opt.util import load_logs
+from bayes_opt.event import Events
+from bayes_opt.observer import JSONLogger
 
 # Import Network Architectures
 from DNN import eval_dnn
 from CNN import eval_cnn, update_tensor_dim
 
+from helpers import update_tensor_dim
 # Dont print depreciation warning
 import warnings
 warnings.filterwarnings("ignore")
 
-def BO_NN(num_evals, eval_func, func_type, hyper_space, logging, verbose):
-
-    if logging:
-        log_fname = os.getcwd() + "/logs/bo_logs_" + func_type + ".json"
-        logger = JSONLogger(path=log_fname)
-        if not os.path.isfile(log_fname):
-            print("Start Logging to {}".format(log_fname))
+def BO_NN(num_evals, eval_func, func_type, hyper_space,
+          num_epochs, k_fold, logging, verbose):
 
     optimizer = BayesianOptimization(
         f=eval_func,
@@ -29,11 +27,19 @@ def BO_NN(num_evals, eval_func, func_type, hyper_space, logging, verbose):
         random_state=1,
     )
 
-    if os.path.isfile(log_fname) and logging:
-        logger = load_logs(optimizer, logs=[log_fname])
-        print("Continue Logging to {}".format(log_fname))
+    log_fname = "./logs/bo_logs_" + func_type + ".json"
+    temp_fname = "./logs/bo_logs_" + func_type + "_session.json"
+
+    # Try to merge logs if previous BO opt fct was interrupted
+    merge_json_logs(log_fname, temp_fname)
+
+    if os.path.isfile(log_fname):
+        load_logs(optimizer, logs=[log_fname])
+        print("Loaded previously existing Log with {} BO iterations.".format(get_iter_log(log_fname)))
 
     if logging:
+        logger = JSONLogger(path=temp_fname)
+        print("Start Logging to {}".format(log_fname))
         optimizer.subscribe(Events.OPTMIZATION_STEP, logger)
 
     utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0.0)
@@ -51,16 +57,23 @@ def BO_NN(num_evals, eval_func, func_type, hyper_space, logging, verbose):
                 next_point = optimizer.suggest(utility)
                 next_point = check_next_point(next_point)
 
+        # Add additional inputs to list - remove again from dict after fct call
+        next_point["num_epochs"] = num_epochs
+        next_point["k_fold"] = k_fold
         target = eval_func(**next_point)
+        del next_point["num_epochs"]
+        del next_point["k_fold"]
+
         optimizer.register(params=next_point, target=target)
         time_t = time.time() - tic
 
         if verbose:
             print(template.format(_ + 1, target, optimizer.max['target'], time_t))
+
+    # Finally merge both logs into single log
+    merge_json_logs(log_fname, temp_fname)
     return optimizer
 
-def update_tensor_dim(W_in, k_size, padding, stride):
-    return (W_in - k_size + 2*padding)/stride + 1
 
 def invalid_kernel_size(next_point, input_size):
     # Checks if kernel sizes is actually computable with cnn setup and specific
@@ -85,3 +98,34 @@ def check_next_point(next_point):
         if key != "learning_rate":
             next_point[key] = int(round(next_point[key]))
     return next_point
+
+
+def merge_json_logs(fname1, fname2):
+    try:
+        read_files = [fname1, fname2]
+        with open("merged_file.json", "wb") as outfile:
+            outfile.write('{}'.format(
+                ''.join([open(f, "rb").read() for f in read_files])))
+
+        os.rename("merged_file.json", fname1)
+        os.remove(fname2)
+        print("Merged JSON logs - Total iterations: {}".format(get_iter_log(fname1)))
+        print("Removed temporary log file.")
+    except:
+        return
+
+
+def get_iter_log(fname):
+    counter = 0
+    with open(fname) as outfile:
+         while True:
+            try:
+                iteration = next(outfile)
+                counter += 1
+            except StopIteration:
+                break
+    return counter
+
+if __name__ == "__main__":
+    log_fname = os.getcwd() + "/logs/bo_logs_dnn.json"
+    temp_fname = os.getcwd() + "/logs/bo_logs_dnn_temp.json"

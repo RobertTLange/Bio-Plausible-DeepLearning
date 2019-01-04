@@ -13,21 +13,23 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Add Xavier init for networks
 * [x] Rewrite architecture and simplify code
 * [x] Tried running in colab
-
-## TODO - CODING:
-* [ ] Set up bayesian optimization pipeline - BayesianOptimization
+* [x] Set up bayesian optimization pipeline - BayesianOptimization
     * [x] implement cross-validation with torch data/skorch
     * [x] one fct taking in hyperparams, return objective
     * [x] write fct that transforms cont variables to discrete
-    * [ ] check how to add folds/add input to eval_nn, BO pipeline
+    * [x] check how to add folds/add input to eval_nn, BO pipeline
  	* [x] Generalize BO pipeline to CNN
     * [x] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
     * [x] Add logging to BO pipeline
+
+
+## TODO - CODING:
+* [ ] get_data - Different datasets - FashionMNIST, CIFAR 10
 * [ ] Get Guergiev Code running/understand
 * [ ] Restructure Guergiev code and integrate into current pipeline
-* [ ] get_data - Different datasets - FashionMNIST, CIFAR 10
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
 * [ ] Work on weight visualization
+* [ ] Work on error propagation comparison/delta W
 
 
 ## TODO - REPORT:
