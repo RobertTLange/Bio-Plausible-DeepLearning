@@ -36,12 +36,19 @@ def load_mnist(path, kind='train'):
 
 
 
-def get_data(num_samples, dataset="MNIST"):
+def get_data(num_samples,
+             data_dir="/Users/rtl/Dropbox/DATASETS",
+             dataset="MNIST"):
 
     if dataset == "MNIST":
         data = fetch_mldata('MNIST original')
     elif dataset == "Fashion-MNIST":
-        data = fetch_mldata('MNIST original')
+        urls = [
+        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-images-idx3-ubyte.gz',
+        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-labels-idx1-ubyte.gz',
+        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-images-idx3-ubyte.gz',
+        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-labels-idx1-ubyte.gz',
+                ]
 
     torch.manual_seed(0)
     X = data.data.astype('float32').reshape(-1, 1, 28, 28)
@@ -210,4 +217,18 @@ def update_tensor_dim(W_in, k_size, padding, stride):
     return (W_in - k_size + 2*padding)/stride + 1
 
 if __name__ == "__main__":
-    get_data(num_samples=100, dataset="MNIST")
+    # get_data(num_samples=100, dataset="MNIST")
+
+
+
+    fashion_base_url = 'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/'
+    file_ext = ['train-images-idx3-ubyte.gz',
+                'train-labels-idx1-ubyte.gz',
+                't10k-images-idx3-ubyte.gz',
+                't10k-labels-idx1-ubyte.gz']
+
+    filedata = urllib2.urlopen(fashion_base_url + file_ext_temp)
+    datatowrite = filedata.read()
+
+    with open(fname, 'wb') as f:
+        f.write(datatowrite)

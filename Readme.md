@@ -24,21 +24,31 @@ This project analyzes different learning rules in deep layered structures. More 
 
 
 ## TODO - CODING:
+
 * [ ] get_data - Different datasets - FashionMNIST, CIFAR 10
+* [ ] Evaluate the model more frequently - not only once per epoch
+* [ ] Record weight changes
 * [ ] Get Guergiev Code running/understand
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
-* [ ] Work on weight visualization
-* [ ] Work on error propagation comparison/delta W
+* [ ] Work on weight visualization/changes in weights!
+* [ ] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
+* [ ] Runs Bayesian Opt for 10 Epochs and 50 evaluations/BO iterations for 3 datasets
+* [ ] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 
 
 ## TODO - REPORT:
+
 * [ ] Read papers/Add first notes of papers
     * [x] Lillicrap et al (2016)
     * [ ] Guergiev et al (2017)
     * [x] Bartunov et al (2018)
-    * [ ] Sacramento et al (2018)
-* [ ] Add first skeleton of report/sections
+    * [x] Sacramento et al (2018)
+    * [ ] Larkum (2013)
+* [ ] Add first skeleton of report/sections - max 10 pages
+    * [ ] Backprop/Notation
+    * [ ] Literature Notes
+* [ ] Overview figures (Problems with backprop, Solution approaches)
 
 ## Repository Structure
 ```
@@ -49,7 +59,8 @@ Bio-Plausible-DeepLearning
 ## How to use this code
 1. Clone the repo.
 ```
-git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning && cd Bio-Plausible-DeepLearning
+git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning
+cd Bio-Plausible-DeepLearning
 ```
 2. Create a virtual environment (optional but recommended).
 ```

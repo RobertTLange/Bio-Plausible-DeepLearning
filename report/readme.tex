@@ -1,0 +1,191 @@
+\hypertarget{biological-plausible-deep-learning}{%
+\section{Biological Plausible Deep
+Learning}\label{biological-plausible-deep-learning}}
+
+\hypertarget{author-robert-tjarko-lange-december-2018}{%
+\subsection{Author: Robert Tjarko Lange \textbar{} December
+2018}\label{author-robert-tjarko-lange-december-2018}}
+
+This project analyzes different learning rules in deep layered
+structures. More specifically, we explore alternatives to
+backpropagation (aka the chain rule). Weight transport (access to all
+weights at every layer of the backward pass) renders backpropagation
+biologically implausible. Recent alternatives explore local learning
+rules and draw inspiration from the compartmental design of pyramidal
+neurons.
+
+\hypertarget{done}{%
+\subsection{DONE:}\label{done}}
+
+\begin{itemize}
+\tightlist
+\item
+  {[}x{]} PyTorch MLP/CNN baseline for MNIST
+\item
+  {[}x{]} Create remote repo
+\item
+  {[}x{]} Generalize network architecture to variable inputs
+\item
+  {[}x{]} Write update\_logger, process\_logger function
+\item
+  {[}x{]} Plot learning curves - output from logger
+\item
+  {[}x{]} Add Xavier init for networks
+\item
+  {[}x{]} Rewrite architecture and simplify code
+\item
+  {[}x{]} Tried running in colab
+\item
+  {[}x{]} Set up bayesian optimization pipeline - BayesianOptimization
+
+  \begin{itemize}
+  \tightlist
+  \item
+    {[}x{]} implement cross-validation with torch data/skorch
+  \item
+    {[}x{]} one fct taking in hyperparams, return objective
+  \item
+    {[}x{]} write fct that transforms cont variables to discrete
+  \item
+    {[}x{]} check how to add folds/add input to eval\_nn, BO pipeline
+  \item
+    {[}x{]} Generalize BO pipeline to CNN
+  \item
+    {[}x{]} Write fct that checks if BO CNN proposal is valid
+    (kernel/in/out)
+  \item
+    {[}x{]} Add logging to BO pipeline
+  \end{itemize}
+\end{itemize}
+
+\hypertarget{todo---coding}{%
+\subsection{TODO - CODING:}\label{todo---coding}}
+
+\begin{itemize}
+\tightlist
+\item
+  {[} {]} get\_data - Different datasets - FashionMNIST, CIFAR 10
+\item
+  {[} {]} Evaluate the model more frequently - not only once per epoch
+\item
+  {[} {]} Record weight changes
+\item
+  {[} {]} Get Guergiev Code running/understand
+\item
+  {[} {]} Restructure Guergiev code and integrate into current pipeline
+\item
+  {[} {]} Add comments! - Look up pep8 standard for fcts/classes
+\item
+  {[} {]} Work on weight visualization/changes in weights!
+\item
+  {[} {]} Work on error propagation comparison/delta W
+  (\textbar{}\textbar{}W\_t -
+  W\_t-1\textbar{}\textbar{}/\textbar{}\textbar{}W\_t\textbar{}\textbar{})
+\item
+  {[} {]} Runs Bayesian Opt for 10 Epochs and 50 evaluations/BO
+  iterations for 3 datasets
+\item
+  {[} {]} Get best/worst performance, standard dev - plot as bar chart
+  across approaches DNN/CNN/Guergiev
+\end{itemize}
+
+\hypertarget{todo---report}{%
+\subsection{TODO - REPORT:}\label{todo---report}}
+
+\begin{itemize}
+\tightlist
+\item
+  {[} {]} Read papers/Add first notes of papers
+
+  \begin{itemize}
+  \tightlist
+  \item
+    {[}x{]} Lillicrap et al (2016)
+  \item
+    {[} {]} Guergiev et al (2017)
+  \item
+    {[}x{]} Bartunov et al (2018)
+  \item
+    {[}x{]} Sacramento et al (2018)
+  \item
+    {[} {]} Larkum (2013)
+  \end{itemize}
+\item
+  {[} {]} Add first skeleton of report/sections - max 10 pages
+
+  \begin{itemize}
+  \tightlist
+  \item
+    {[} {]} Backprop/Notation
+  \item
+    {[} {]} Literature Notes
+  \end{itemize}
+\item
+  {[} {]} Overview figures (Problems with backprop, Solution approaches)
+\end{itemize}
+
+\hypertarget{repository-structure}{%
+\subsection{Repository Structure}\label{repository-structure}}
+
+\begin{verbatim}
+Bio-Plausible-DeepLearning
++- workspace.ipynb: Main workspace notebook - Execute for replication
+\end{verbatim}
+
+\hypertarget{how-to-use-this-code}{%
+\subsection{How to use this code}\label{how-to-use-this-code}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Clone the repo.
+\end{enumerate}
+
+\begin{verbatim}
+git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning
+cd Bio-Plausible-DeepLearning
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Create a virtual environment (optional but recommended).
+\end{enumerate}
+
+\begin{verbatim}
+virtualenv -p python BPDL
+\end{verbatim}
+
+Activate the env (the following command works on Linux, other operating
+systems might differ):
+
+\begin{verbatim}
+source BPDL/bin/activate
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  Install all dependencies:
+\end{enumerate}
+
+\begin{verbatim}
+pip install -r requirements.txt
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  Run the main notebook:
+\end{enumerate}
+
+\begin{verbatim}
+jupyter notebook workspace.ipynb
+\end{verbatim}
