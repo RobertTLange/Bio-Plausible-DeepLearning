@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
 """
@@ -24,27 +25,26 @@ def plot_learning(its, train_acc, val_acc, train_loss, val_loss, title):
     plt.show()
 
 
-def plot_images(x, y, row_id, labels, printer=False):
-
-    if printer:
-        print(y[row_id])
+def plot_images(x, y, row_id, labels):
 
     l_id = y[row_id]
     pixels = x[row_id, :]
     pixels = np.array(pixels, dtype='uint8')
     if pixels.shape == (1, 28, 28):
         pixels = pixels.reshape((28, 28))
-        plt.imshow(pixels, plt.get_cmap('gray_r'))
+        temp_fig = plt.imshow(pixels, plt.get_cmap('gray_r'))
     elif pixels.shape == (3, 32, 32):
-         pixels = pixels.reshape((32, 32, 3))
-         plt.imshow(pixels)
+        pixels = pixels.reshape((32, 32, 3))
+        temp_fig = plt.imshow(pixels)
+    temp_fig.axes.get_xaxis().set_visible(False)
+    temp_fig.axes.get_yaxis().set_visible(False)
     plt.title('{xyz}'.format(xyz=labels[l_id]))
     # plt.show()
 
 
-def plot_labels(X, y, labels):
+def plot_labels(X, y, labels, save_fname=None):
     X *= 255
-    plt.figure(figsize=(16, 8))
+    plt.figure(figsize=(10, 8))
 
     u, indices = np.unique(y, return_index=True)
     counter = 0
@@ -52,6 +52,10 @@ def plot_labels(X, y, labels):
     for i in indices:
         counter += 1
         plt.subplot(1, 10, counter)
-        plot_images(X, y, i, labels, False)
+        plot_images(X, y, i, labels)
 
+    plt.tight_layout()
+    if save_fname is not None:
+        plt.savefig(save_fname, dpi=300)
+        print("Saved figure to {}".format(save_fname))
     plt.show()

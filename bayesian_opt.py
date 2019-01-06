@@ -17,7 +17,7 @@ from helpers import update_tensor_dim
 import warnings
 warnings.filterwarnings("ignore")
 
-def BO_NN(num_evals, eval_func, func_type, hyper_space,
+def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
           num_epochs, k_fold, logging, verbose):
 
     optimizer = BayesianOptimization(
@@ -27,8 +27,8 @@ def BO_NN(num_evals, eval_func, func_type, hyper_space,
         random_state=1,
     )
 
-    log_fname = "./logs/bo_logs_" + func_type + ".json"
-    temp_fname = "./logs/bo_logs_" + func_type + "_session.json"
+    log_fname = "./logs/bo_logs_" + func_type + "_" + dataset + ".json"
+    temp_fname = "./logs/bo_logs_" + func_type + "_" + dataset +  "_session.json"
 
     # Try to merge logs if previous BO opt fct was interrupted
     merge_json_logs(log_fname, temp_fname)
@@ -60,9 +60,11 @@ def BO_NN(num_evals, eval_func, func_type, hyper_space,
         # Add additional inputs to list - remove again from dict after fct call
         next_point["num_epochs"] = num_epochs
         next_point["k_fold"] = k_fold
+        next_point["dataset"] = dataset
         target = eval_func(**next_point)
         del next_point["num_epochs"]
         del next_point["k_fold"]
+        del next_point["dataset"]
 
         optimizer.register(params=next_point, target=target)
         time_t = time.time() - tic

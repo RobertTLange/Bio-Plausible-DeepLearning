@@ -46,12 +46,18 @@ model.load_state_dict(torch.load(PATH))
 model.eval()
 """
 
-def eval_dnn(batch_size, learning_rate, num_layers=2,
+def eval_dnn(dataset, batch_size, learning_rate, num_layers=2,
              h_l_1=500, h_l_2=0, h_l_3=0, h_l_4=0, h_l_5=0, h_l_6=0,
              num_epochs=5, k_fold=3, verbose=False):
-    h_sizes = [784, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
+
+    if dataset == "mnist" or dataset == "fashion":
+        h_in = 784
+    elif dataset == "cifar10":
+        h_in = 32*32*3
+    h_sizes = [h_in, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
 
     if verbose:
+        print("Dataset: {}".format(dataset))
         print("Batchsize: {}".format(batch_size))
         print("Learning Rate: {}".format(learning_rate))
         print("Architecture of Cross-Validated Network:")
@@ -63,7 +69,7 @@ def eval_dnn(batch_size, learning_rate, num_layers=2,
     # Initialize list to store cross_val accuracies
     scores = []
     # Load dataset
-    X, y = get_data(num_samples=70000)
+    X, y = get_data(70000, dataset)
 
     # Split original dataset into folds (return idx)
     kf = StratifiedKFold(n_splits=k_fold, random_state=0)

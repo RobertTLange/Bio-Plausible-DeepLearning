@@ -22,10 +22,11 @@ This project analyzes different learning rules in deep layered structures. More 
     * [x] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
     * [x] Add logging to BO pipeline
 * [x] get_data - Different datasets - FashionMNIST, CIFAR 10
+* [x] Add plotting of all 3 datasets
+* [x] Get models running on all three datasets
 
 ## TODO - CODING:
 
-* [ ] Add plotting of all 3 datasets
 * [ ] Evaluate the model more frequently - not only once per epoch
 * [ ] Record weight changes
 * [ ] Get Guergiev Code running/understand

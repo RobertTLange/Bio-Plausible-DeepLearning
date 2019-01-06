@@ -185,7 +185,9 @@ def init_weights(m):
 
 def get_test_error(model_type, device, model, X_test, y_test):
     if model_type == "dnn":
-        X_test = X_test.reshape(X_test.shape[0], 28*28)
+        dims = list(X_test.shape)
+        dim_flat = np.prod(dims)/X_test.shape[0]
+        X_test = X_test.reshape(X_test.shape[0], dim_flat)
     X_test = torch.tensor(X_test).to(device)
     with torch.no_grad():
         y_pred = model(X_test).cpu().numpy().argmax(1)
@@ -271,7 +273,9 @@ def train_step(model_type, model, dataset, device, criterion, batch_size, optimi
 
     for Xi, yi in torch.utils.data.DataLoader(dataset, batch_size=batch_size):
         if model_type == "dnn":
-            Xi, yi = Xi.reshape(Xi.shape[0], 28*28).to(device), yi.to(device)
+            dims = list(Xi.shape)
+            dim_flat = np.prod(dims)/Xi.shape[0]
+            Xi, yi = Xi.reshape(Xi.shape[0], dim_flat).to(device), yi.to(device)
         elif model_type == "cnn":
             Xi, yi = Xi.to(device), yi.to(device)
         optimizer.zero_grad()
@@ -303,7 +307,9 @@ def valid_step(model_type, model, dataset, device, criterion, batch_size):
     with torch.no_grad():
         for Xi, yi in torch.utils.data.DataLoader(dataset, batch_size=batch_size):
             if model_type == "dnn":
-                Xi, yi = Xi.reshape(Xi.shape[0], 28*28).to(device), yi.to(device)
+                dims = list(Xi.shape)
+                dim_flat = np.prod(dims)/Xi.shape[0]
+                Xi, yi = Xi.reshape(Xi.shape[0], dim_flat).to(device), yi.to(device)
             elif model_type == "cnn":
                 Xi, yi = Xi.to(device), yi.to(device)
             y_pred = model(Xi)

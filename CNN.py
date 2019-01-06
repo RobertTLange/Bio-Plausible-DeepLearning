@@ -56,7 +56,7 @@ class CNN(nn.Module):
             print(layer)
 
 
-def eval_cnn(batch_size, learning_rate, num_layers=2,
+def eval_cnn(dataset, batch_size, learning_rate, num_layers=2,
              ch_1=16, ch_2=32, ch_3=0, ch_4=0, ch_5=0,
              k_1=5, k_2=5, k_3=0, k_4=0, k_5=0,
              stride=1, padding=2,
@@ -78,7 +78,7 @@ def eval_cnn(batch_size, learning_rate, num_layers=2,
     # Initialize list to store cross_val accuracies
     scores = []
     # Load dataset
-    X, y = get_data(num_samples=100)
+    X, y = get_data(70000, dataset)
 
     # Split original dataset into folds (return idx)
     kf = StratifiedKFold(n_splits=k_fold, random_state=0)
