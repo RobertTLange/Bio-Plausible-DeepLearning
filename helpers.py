@@ -81,12 +81,13 @@ def get_data(num_samples, dataset="mnist"):
 
     if dataset == "mnist" or dataset == "fashion":
         X = X.astype('float32').reshape(-1, 1, 28, 28)
-        y = y.astype('int64')
-        X, y = shuffle(X, y)
-        X, y = X[:num_samples], y[:num_samples]
-        X /= 255
-    # elif dataset == "cifar10":
-    #     X, y = load_cifar_10()
+    elif dataset == "cifar10":
+        X= X.astype('float32').reshape(-1, 3, 32, 32)
+    y = y.astype('int64')
+    X, y = shuffle(X, y)
+    X, y = X[:num_samples], y[:num_samples]
+    X /= 255
+
     return X, y
 
 

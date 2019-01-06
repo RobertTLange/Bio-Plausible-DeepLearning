@@ -24,24 +24,34 @@ def plot_learning(its, train_acc, val_acc, train_loss, val_loss, title):
     plt.show()
 
 
-def plot_kernels(tensor, num_cols=6):
-    num_kernels = tensor.shape[0]
-    num_rows = 1+ num_kernels // num_cols
-    fig = plt.figure(figsize=(num_cols,num_rows))
-    for i in range(num_kernels):
-        ax1 = fig.add_subplot(num_rows,num_cols,i+1)
-        ax1.imshow(tensor[i][0,:,:], cmap='gray')
-        ax1.axis('off')
-        ax1.set_xticklabels([])
-        ax1.set_yticklabels([])
+def plot_images(x, y, row_id, labels, printer=False):
 
-# plt.subplots_adjust(wspace=0.1, hspace=0.1)
-#     plt.show()
-# filters = cnn.modules();
-# model_layers = [i for i in cnn.children()];
-# first_layer = model_layers[0];
-# second_layer = model_layers[1];
-# first_kernels = first_layer[0].weight.data.numpy()
-# plot_kernels(first_kernels, 8)
-# second_kernels = second_layer[0].weight.data.numpy()
-# plot_kernels(second_kernels, 8)
+    if printer:
+        print(y[row_id])
+
+    l_id = y[row_id]
+    pixels = x[row_id, :]
+    pixels = np.array(pixels, dtype='uint8')
+    if pixels.shape == (1, 28, 28):
+        pixels = pixels.reshape((28, 28))
+        plt.imshow(pixels, plt.get_cmap('gray_r'))
+    elif pixels.shape == (3, 32, 32):
+         pixels = pixels.reshape((32, 32, 3))
+         plt.imshow(pixels)
+    plt.title('{xyz}'.format(xyz=labels[l_id]))
+    # plt.show()
+
+
+def plot_labels(X, y, labels):
+    X *= 255
+    plt.figure(figsize=(16, 8))
+
+    u, indices = np.unique(y, return_index=True)
+    counter = 0
+
+    for i in indices:
+        counter += 1
+        plt.subplot(1, 10, counter)
+        plot_images(X, y, i, labels, False)
+
+    plt.show()
