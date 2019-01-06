@@ -91,17 +91,14 @@ ADD FIGURE WITH KEY POINTS OF CRITIQUE
 
 \subsection*{Synaptic Integration via Compartmental Dendrites}
 
-%--------------------------------------------------------------------
-\newpage
-\section*{\citet{guerguiev2017} - A Plausible Alternative?}
 
 %--------------------------------------------------------------------
 \newpage
-\section{Related Literature}
+\section{Literature Review}
 
 ADD FIGURE WHICH COMPARES ALL APPROACHES - TREE OR TABLE
 
-\subsection*{\citet{lillicrap2016} - Feedback Alignment}
+\subsection*{Feedback Alignment - \citet{lillicrap2016}}
 
 General Content: Introduce a first feedback alignment approach to solve the weight transport problem of backpropagation. Forward and backward weights are modeled separately - backward weights align with weight matrix transpose through learning process. Argument follows from positive definiteness of weight and random matrix product and a rotation line of thought.
 
@@ -142,7 +139,10 @@ Questions:
 * Relationship to predictive coding
 
 
-\subsection*{\citet{bartunov2018} - Simplified Difference Target Propagation}
+\subsection*{Target Propagation - \citet{lee2015, bartunov2018}}
+
+
+\citet{bartunov2018} - Simplified Difference
 
 General Content: Extent the target propagation algorithm to not require exact gradient at penultimate layer. Test alternative learning rules in more complicated settings (CIFAR/ImageNet) and differentiate between locally and fully connected architectures. Very good review but not much additional innovation. Behavioral + Physiological Realism
 
@@ -189,6 +189,11 @@ Questions:
 * How could the brain do weight sharing - is approximate again satisfactory/functional approx?
 * Think more about communication: MARL agents learning communication channels
 
+%--------------------------------------------------------------------
+\newpage
+\section*{Local Synaptic Rules with Dendritic Integration}
+
+\subsection*{\citet{guerguiev2017} - A Plausible Alternative?}
 
 \subsection*{\citet{sacramento2018} - Dendritic Microcircuits}
 

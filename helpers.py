@@ -1,6 +1,9 @@
 import os
 import gzip
+import tarfile
+import wget
 import time
+import pickle
 import numpy as np
 
 import torch
@@ -13,49 +16,155 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from logger import Logger, update_logger
 
+data_dir = os.getcwd() + "/data"
+global data_dir
 """
 - Dataset specific helpers
+    a. Download data from original sources if not already done
+    b. Load the data in
 """
+def download_data():
+    # Check if data is in directory - if not download from urls
+    root_dir = os.getcwd()
+    os.chdir(data_dir)
+
+    # Define url from which to get data
+    mnist_base = 'http://yann.lecun.com/exdb/mnist/'
+    fashion_base = 'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/'
+    url_ext = ['train-images-idx3-ubyte.gz','train-labels-idx1-ubyte.gz',
+               't10k-images-idx3-ubyte.gz', 't10k-labels-idx1-ubyte.gz']
+    cifar_url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
+
+    # 1. MNIST
+    if not os.path.exists(data_dir + "/MNIST"):
+        os.makedirs(data_dir + "/MNIST")
+        for url in url_ext:
+            wget.download(mnist_base + url, out=data_dir + "/MNIST")
+            print("Downloaded MNIST: {}".format(url))
+    else:
+        print("No download of MNIST needed.")
+
+    # 2. Fashion MNIST
+    if not os.path.exists(data_dir + "/Fashion_MNIST"):
+        os.makedirs(data_dir + "/Fashion_MNIST")
+        for url in url_ext:
+            wget.download(fashion_base + url, out=data_dir + "/Fashion_MNIST")
+            print("Downloaded Fashion MNIST: {}".format(url))
+    else:
+        print("No download of Fashion-MNIST needed.")
+
+    # 3. CIFAR-10
+    if not os.path.exists(data_dir + "/CIFAR-10"):
+        os.makedirs(data_dir + "/CIFAR-10")
+        wget.download(cifar_url, out=data_dir + "/CIFAR-10")
+        print("Downloaded CIFAR-10 dataset")
+        os.chdir(data_dir + "/CIFAR-10")
+        tar = tarfile.open("cifar-10-python.tar.gz")
+        tar.extractall()
+        tar.close()
+    else:
+        print("No download of CIFAR-10 needed.")
+
+    # Go back to root dir
+    os.chdir(root_dir)
+    return
+
+
+def get_data(num_samples, dataset="mnist"):
+    torch.manual_seed(0)
+    if dataset == "mnist":
+        X, y = get_mnist("original")
+    elif dataset == "fashion":
+        X, y = get_mnist("fashion")
+    elif dataset == "cifar10":
+        X, y = load_cifar_10()
+
+    if dataset == "mnist" or dataset == "fashion":
+        X = X.astype('float32').reshape(-1, 1, 28, 28)
+        y = y.astype('int64')
+        X, y = shuffle(X, y)
+        X, y = X[:num_samples], y[:num_samples]
+        X /= 255
+    # elif dataset == "cifar10":
+    #     X, y = load_cifar_10()
+    return X, y
+
+
 def load_mnist(path, kind='train'):
     """Load MNIST data from `path`"""
-    labels_path = os.path.join(path,
-                               '%s-labels-idx1-ubyte.gz'
-                               % kind)
-    images_path = os.path.join(path,
-                               '%s-images-idx3-ubyte.gz'
-                               % kind)
+    labels_path = os.path.join(path, '%s-labels-idx1-ubyte.gz' % kind)
+    images_path = os.path.join(path, '%s-images-idx3-ubyte.gz' % kind)
 
     with gzip.open(labels_path, 'rb') as lbpath:
-        labels = np.frombuffer(lbpath.read(), dtype=np.uint8,
-                               offset=8)
+        labels = np.frombuffer(lbpath.read(), dtype=np.uint8, offset=8)
 
     with gzip.open(images_path, 'rb') as imgpath:
-        images = np.frombuffer(imgpath.read(), dtype=np.uint8,
-                               offset=16).reshape(len(labels), 784)
+        images = np.frombuffer(imgpath.read(), dtype=np.uint8, offset=16).reshape(len(labels), 784)
     return images, labels
 
+def get_mnist(d_type):
+    if d_type == "original":
+        X_train, y_train = load_mnist(data_dir + "/MNIST", kind='train')
+        X_test, y_test = load_mnist(data_dir + "/MNIST", kind='t10k')
+    elif d_type == "fashion":
+        X_train, y_train = load_mnist(data_dir + "/Fashion_MNIST", kind='train')
+        X_test, y_test = load_mnist(data_dir + "/Fashion_MNIST", kind='t10k')
+    X, y = np.append(X_train, X_test, axis=0), np.append(y_train, y_test, axis=0)
+    return X, y
 
 
-def get_data(num_samples,
-             data_dir="/Users/rtl/Dropbox/DATASETS",
-             dataset="MNIST"):
+def unpickle(file):
+    with open(file, 'rb') as fo:
+        data = pickle.load(fo)
+    return data
 
-    if dataset == "MNIST":
-        data = fetch_mldata('MNIST original')
-    elif dataset == "Fashion-MNIST":
-        urls = [
-        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-images-idx3-ubyte.gz',
-        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-labels-idx1-ubyte.gz',
-        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-images-idx3-ubyte.gz',
-        'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/t10k-labels-idx1-ubyte.gz',
-                ]
 
-    torch.manual_seed(0)
-    X = data.data.astype('float32').reshape(-1, 1, 28, 28)
-    y = data.target.astype('int64')
-    X, y = shuffle(X, y)
-    X, y = X[:num_samples], y[:num_samples]
-    X /= 255
+def load_cifar_10(negatives=False):
+    """
+    Return train_data, train_filenames, train_labels, test_data, test_filenames, test_labels
+    """
+    meta_data_dict = unpickle(data_dir + "/CIFAR-10/cifar-10-batches-py/batches.meta")
+    cifar_label_names = meta_data_dict[b'label_names']
+    cifar_label_names = np.array(cifar_label_names)
+
+    # training data
+    cifar_train_data = None
+    cifar_train_filenames = []
+    cifar_train_labels = []
+
+    for i in range(1, 6):
+        cifar_train_data_dict = unpickle(data_dir + "/CIFAR-10/cifar-10-batches-py/data_batch_{}".format(i))
+        if i == 1:
+            cifar_train_data = cifar_train_data_dict[b'data']
+        else:
+            cifar_train_data = np.vstack((cifar_train_data, cifar_train_data_dict[b'data']))
+        cifar_train_filenames += cifar_train_data_dict[b'filenames']
+        cifar_train_labels += cifar_train_data_dict[b'labels']
+
+    cifar_train_data = cifar_train_data.reshape((len(cifar_train_data), 3, 32, 32))
+    if negatives:
+        cifar_train_data = cifar_train_data.transpose(0, 2, 3, 1).astype(np.float32)
+    else:
+        cifar_train_data = np.rollaxis(cifar_train_data, 1, 4)
+    cifar_train_filenames = np.array(cifar_train_filenames)
+    cifar_train_labels = np.array(cifar_train_labels)
+
+    cifar_test_data_dict = unpickle(data_dir + "/CIFAR-10/cifar-10-batches-py/test_batch")
+    cifar_test_data = cifar_test_data_dict[b'data']
+    cifar_test_filenames = cifar_test_data_dict[b'filenames']
+    cifar_test_labels = cifar_test_data_dict[b'labels']
+
+    cifar_test_data = cifar_test_data.reshape((len(cifar_test_data), 3, 32, 32))
+    if negatives:
+        cifar_test_data = cifar_test_data.transpose(0, 2, 3, 1).astype(np.float32)
+    else:
+        cifar_test_data = np.rollaxis(cifar_test_data, 1, 4)
+    cifar_test_filenames = np.array(cifar_test_filenames)
+    cifar_test_labels = np.array(cifar_test_labels)
+
+    X_train, X_test = cifar_train_data, cifar_test_data
+    y_train, y_test = cifar_train_labels, cifar_test_labels
+    X, y = np.append(X_train, X_test, axis=0), np.append(y_train, y_test, axis=0)
     return X, y
 
 
@@ -216,19 +325,15 @@ def valid_step(model_type, model, dataset, device, criterion, batch_size):
 def update_tensor_dim(W_in, k_size, padding, stride):
     return (W_in - k_size + 2*padding)/stride + 1
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
     # get_data(num_samples=100, dataset="MNIST")
-
-
-
-    fashion_base_url = 'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/'
-    file_ext = ['train-images-idx3-ubyte.gz',
-                'train-labels-idx1-ubyte.gz',
-                't10k-images-idx3-ubyte.gz',
-                't10k-labels-idx1-ubyte.gz']
-
-    filedata = urllib2.urlopen(fashion_base_url + file_ext_temp)
-    datatowrite = filedata.read()
-
-    with open(fname, 'wb') as f:
-        f.write(datatowrite)
+    # data_dir = os.getcwd() + "/data"
+    # global data_dir
+    # download_data()
+    #
+    # get_mnist("original")
+    # get_mnist("fashion")
+    # load_cifar_10()
+    # get_data(70000, dataset="mnist")
+    # get_data(70000, dataset="fashion")
+    # get_data(60000, dataset="cifar10")

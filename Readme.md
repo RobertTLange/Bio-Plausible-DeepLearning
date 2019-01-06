@@ -21,11 +21,11 @@ This project analyzes different learning rules in deep layered structures. More 
  	* [x] Generalize BO pipeline to CNN
     * [x] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
     * [x] Add logging to BO pipeline
-
+* [x] get_data - Different datasets - FashionMNIST, CIFAR 10
 
 ## TODO - CODING:
 
-* [ ] get_data - Different datasets - FashionMNIST, CIFAR 10
+* [ ] Add plotting of all 3 datasets
 * [ ] Evaluate the model more frequently - not only once per epoch
 * [ ] Record weight changes
 * [ ] Get Guergiev Code running/understand
@@ -45,6 +45,7 @@ This project analyzes different learning rules in deep layered structures. More 
     * [x] Bartunov et al (2018)
     * [x] Sacramento et al (2018)
     * [ ] Larkum (2013)
+    * [ ] Whittington, Bogacz (2017)
 * [ ] Add first skeleton of report/sections - max 10 pages
     * [ ] Backprop/Notation
     * [ ] Literature Notes
