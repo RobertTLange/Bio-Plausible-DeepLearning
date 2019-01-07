@@ -15,7 +15,8 @@ import shutil
 import json
 from scipy.special import expit
 
-# --- sigmoid function --- #
+from sklearn.utils import shuffle
+from CompDNN_hyperparameters import *
 
 def sigma(x):
     return expit(x)
@@ -23,22 +24,33 @@ def sigma(x):
 def deriv_sigma(x):
     return expit(x)*(1.0 - expit(x))
 
-# --- kernel function --- #
-
 def kappa(x):
     return (np.exp(-x/tau_L) - np.exp(-x/tau_s))/(tau_L - tau_s)
 
-def get_kappas(n=mem):
+def get_kappas(n):
     return np.array([kappa(i+1) for i in xrange(n)])
 
-kappas = np.flipud(get_kappas(mem))[:, np.newaxis] # initialize kappas array
+# Kernel filtering initialize kappas array
+kappas = np.flipud(get_kappas(mem))[:, np.newaxis]
 
-# ---------------------------------------------------------------
-"""                     Network class                         """
-# ---------------------------------------------------------------
+def shuffle_arrays(*args):
+    '''
+    Shuffle multiple arrays using the same random permutation.
+
+    Arguments:
+        args (tuple of ndarrays) : Arrays to shuffle.
+
+    Returns:
+        results (tuple of ndarrays) : Shuffled arrays.
+    '''
+
+    p = np.random.permutation(args[0].shape[1])
+    results = (a[:, p] for a in args)
+    return results
+
 
 class Network:
-    def __init__(self, n):
+    def __init__(self, n, X_train, y_train, X_test, y_test):
         '''
         Initialize the network. Note: This also loads the MNIST dataset.
 
@@ -55,7 +67,7 @@ class Network:
         self.n_neurons_per_category = int(self.n[-1]/10)
 
         # load MNIST
-        self.x_train, self.t_train, self.x_test, self.t_test = load_MNIST()
+        self.x_train, self.t_train, self.x_test, self.t_test = X_train, y_train, X_test, y_test
 
         self.n_in  = self.x_train.shape[0] # input size
         self.n_out = self.n[-1]            # output size
@@ -1787,421 +1799,3 @@ class finalLayer(Layer):
         elif phase == "target":
             self.average_C_t        = np.mean(self.C_hist, axis=-1)[:, np.newaxis]
             self.average_lambda_C_t = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
-
-# ---------------------------------------------------------------
-"""                     Helper functions                      """
-# ---------------------------------------------------------------
-
-def load_simulation(latest_epoch, folder_name, simulations_folder=default_simulations_folder):
-    '''
-        Re-load a previously saved simulation, recreating the network. This function can
-        be used to continue an interrupted simulation.
-
-        Arguments:
-            latest_epoch (int)          : The latest epoch of this simulation that has been completed.
-            folder_name (string)        : Name of the subfolder in the parent folder that contains data from this simulation.
-            simulations_folder (string) : Name of the parent folder that contains the folder for this simulation.
-
-        Returns:
-            net (Network)             : Network object with re-loaded weights.
-            f_etas (tuple)            : Learning rates for each layer's feedforward weights, eg. (0.21, 0.21).
-            b_etas (tuple)            : Learning rates for each layer's feedback weights.
-            n_training_examples (int) : Number of training examples per epoch.
-    '''
-
-    simulation_path = os.path.join(simulations_folder, folder_name)
-
-    print("Loading simulation from \"{}\" @ epoch {}.\n".format(simulation_path, latest_epoch))
-
-    if not os.path.exists(simulation_path):
-        print("Error: Could not find simulation folder – path does not exist.")
-        return None
-
-    # load parameters
-    with open(os.path.join(simulation_path, 'simulation.json'), 'r') as simulation_file:
-        params = json.loads(simulation_file.read())
-
-    # set global parameters
-    global nonspiking_mode
-    global n_full_test, n_quick_test
-    global use_rand_phase_lengths, use_rand_plateau_times, use_conductances, use_broadcast, use_spiking_feedback, use_spiking_feedforward
-    global use_symmetric_weights, noisy_symmetric_weights
-    global use_sparse_feedback, update_feedback_weights, use_backprop, use_apical_conductance, use_weight_optimization, use_feedback_bias, initial_test
-    global record_backprop_angle, record_loss, record_training_error, record_training_labels, record_phase_times, record_plateau_times, record_voltages, record_eigvals, record_matrices, plot_eigvals
-    global dt, mem, integration_time, integration_time_test
-    global l_f_phase, l_t_phase, l_f_phase_test
-    global lambda_max
-    global tau_s, tau_L
-    global g_B, g_A, g_L, g_D
-    global k_B, k_D, k_I
-    global P_hidden, P_final
-    global kappas
-
-    nonspiking_mode         = params['nonspiking_mode']
-    n_full_test             = params['n_full_test']
-    n_quick_test            = params['n_quick_test']
-    use_rand_phase_lengths  = params['use_rand_phase_lengths']
-    use_rand_plateau_times  = params['use_rand_plateau_times']
-    use_conductances        = params['use_conductances']
-    use_broadcast           = params['use_broadcast']
-    use_spiking_feedback    = params['use_spiking_feedback']
-    use_spiking_feedforward = params['use_spiking_feedforward']
-    use_symmetric_weights   = params['use_symmetric_weights']
-    use_sparse_feedback     = params['use_sparse_feedback']
-    update_feedback_weights = params['update_feedback_weights']
-    use_backprop            = params['use_backprop']
-    use_apical_conductance  = params['use_apical_conductance']
-    use_weight_optimization = params['use_weight_optimization']
-    use_feedback_bias       = params['use_feedback_bias']
-    initial_test            = params['initial_test']
-    record_backprop_angle   = params['record_backprop_angle']
-    record_loss             = params['record_loss']
-    record_training_error   = params['record_training_error']
-    record_training_labels  = params['record_training_labels']
-    record_phase_times      = params['record_phase_times']
-    record_plateau_times    = params['record_plateau_times']
-    record_voltages         = params['record_voltages']
-    record_eigvals          = params['record_eigvals']
-    record_matrices         = params['record_matrices']
-    plot_eigvals            = params['plot_eigvals']
-    dt                      = params['dt']
-    mem                     = params['mem']
-    integration_time        = params['integration_time']
-    integration_time_test   = params['integration_time_test']
-    l_f_phase               = params['l_f_phase']
-    l_t_phase               = params['l_t_phase']
-    l_f_phase_test          = params['l_f_phase_test']
-    lambda_max              = params['lambda_max']
-    tau_s                   = params['tau_s']
-    tau_L                   = params['tau_L']
-    g_B                     = params['g_B']
-    g_A                     = params['g_A']
-    g_L                     = params['g_L']
-    g_D                     = params['g_D']
-    k_B                     = params['k_B']
-    k_D                     = params['k_D']
-    k_I                     = params['k_I']
-    P_hidden                = params['P_hidden']
-    P_final                 = params['P_final']
-
-    n                       = params['n']
-    f_etas                  = params['f_etas']
-    b_etas                  = params['b_etas']
-    n_training_examples     = params['n_training_examples']
-
-    if nonspiking_mode:
-        print("* ------------ Running in non-spiking mode. ------------ *")
-
-        # set parameters for non-spiking mode
-        use_rand_phase_lengths  = False
-        use_rand_plateau_times  = False
-        use_conductances        = False
-        use_spiking_feedforward = False
-        use_spiking_feedback    = False
-        record_phase_times      = False
-        record_plateau_times    = False
-        record_voltages         = False
-
-        l_f_phase             = 2
-        l_t_phase             = 2
-        l_f_phase_test        = 2
-        integration_time      = 1
-        integration_time_test = 1
-        mem                   = 1
-
-    # create network and load weights
-    net = Network(n=n)
-    net.load_weights(simulation_path, prefix="epoch_{}_".format(latest_epoch))
-    net.current_epoch = latest_epoch + 1
-
-    kappas = np.flipud(get_kappas(mem))[:, np.newaxis] # re-initialize kappas array
-
-    return net, f_etas, b_etas, n_training_examples
-
-# --- MNIST --- #
-
-def save_MNIST(x_train, t_train, x_test, t_test, x_valid=None, t_valid=None):
-    '''
-        Save MNIST data arrays to .npy files. Each data array has size M x N,
-        where M is the size of the inputs/targets (ie. 784 or 10 for MNIST),
-        and N is the number of examples in the set.
-
-        Arguments:
-            x_train (ndarray) : Training inputs.
-            t_train (ndarray) : Training targets.
-            x_test (ndarray)  : Testing inputs.
-            t_test (ndarray)  : Testing targets.
-            x_valid (ndarray) : Validation inputs.
-            t_valid (ndarray) : Validation targets.
-    '''
-
-    np.save("x_train.npy", x_train)
-    np.save("x_test.npy", x_test)
-    np.save("t_train.npy", t_train)
-    np.save("t_test.npy", t_test)
-
-    if x_valid != None and t_valid != None:
-        np.save("x_valid.npy", x_valid)
-        np.save("t_valid.npy", t_valid)
-
-def load_MNIST(n_valid=0):
-    '''
-        Load MNIST data arrays from .npy files. Each data array has size M x N,
-        where M is the size of the inputs/targets (ie. 784 or 10 for MNIST),
-        and N is the number of examples in the set.
-
-        Arguments:
-            n_valid (int) : Number of validation examples that are saved.
-
-        Returns:
-            x_train (ndarray) : Training inputs.
-            t_train (ndarray) : Training targets.
-            x_test (ndarray)  : Testing inputs.
-            t_test (ndarray)  : Testing targets.
-            x_valid (ndarray) : Validation inputs. Returned if n_valid > 0.
-            t_valid (ndarray) : Validation targets. Returned if n_valid > 0.
-    '''
-
-    try:
-        x_train = np.load("x_train.npy")
-        x_test  = np.load("x_test.npy")
-        t_train = np.load("t_train.npy")
-        t_test  = np.load("t_test.npy")
-        if n_valid != 0:
-            x_valid = np.load("x_valid.npy")
-            t_valid = np.load("t_valid.npy")
-    except:
-        print("Could not find MNIST .npy files in the current directory.\nLooking for original binary files...")
-        try:
-            if n_valid != 0:
-                x_train, t_train, x_test, t_test, x_valid, t_valid = get_MNIST(n_valid)
-                save_MNIST(x_train, t_train, x_test, t_test, x_valid, t_valid)
-            else:
-                x_train, t_train, x_test, t_test = get_MNIST()
-                save_MNIST(x_train, t_train, x_test, t_test)
-        except:
-            return
-
-        print("Saved .npy files in the current working directory.\n")
-
-    if n_valid != 0:
-        return x_train, t_train, x_test, t_test, x_valid, t_valid
-    else:
-        return x_train, t_train, x_test, t_test
-
-def get_MNIST(n_valid=0):
-    '''
-    Open original MNIST binary files (which can be obtained from
-    http://yann.lecun.com/exdb/mnist/) and generate arrays of
-    training, tuning & testing input & target vectors that are
-    compatible with our neural network.
-
-    The four binary files:
-
-        train-images.idx3-ubyte
-        train-labels.idx1-ubyte
-        t10k-images.idx3-ubyte
-        t10k-labels.idx1-ubyte
-
-    are expected to be in the same directory as this script.
-
-    Each data array has size M x N, where M is the size of the
-    inputs/targets (ie. 784 or 10 for MNIST), and N is the
-    number of examples in the set.
-
-    Arguments:
-        n_valid (int) : Number of validation examples to use.
-
-    Returns:
-        x_train (ndarray) : Training inputs.
-        t_train (ndarray) : Training targets.
-        x_test (ndarray)  : Testing inputs.
-        t_test (ndarray)  : Testing targets.
-        x_valid (ndarray) : Validation inputs. Returned if n_valid > 0.
-        t_valid (ndarray) : Validation targets. Returned if n_valid > 0.
-    '''
-
-    import MNIST
-
-    if (os.path.isfile("train-images.idx3-ubyte") and
-        os.path.isfile("train-labels.idx1-ubyte") and
-        os.path.isfile("t10k-images.idx3-ubyte") and
-        os.path.isfile("t10k-labels.idx1-ubyte")):
-        print("Found original MNIST files. Converting to .npy files...")
-        try:
-            trainfeatures, trainlabels = MNIST.traindata()
-            testfeatures, testlabels   = MNIST.testdata()
-        except:
-            print("Error: Could not convert original MNIST files.")
-            return
-    else:
-        print("Error: Could not find original MNIST files in the current directory.\nMake sure that all four binary files are in the current working directory.")
-        return
-
-    # normalize inputs
-    if n_valid > 0:
-        x_valid = trainfeatures[:, :n_valid]/255.0
-
-    x_train = trainfeatures[:, n_valid:]/255.0
-    x_test   = testfeatures/255.0
-
-    n_train = trainlabels.size - n_valid
-
-    # generate target vectors
-    if n_valid > 0:
-        t_valid = np.zeros((10, n_valid))
-        for i in range(n_valid):
-            t_valid[int(trainlabels[i]), i] = 1
-
-    t_train = np.zeros((10, n_train))
-    for i in xrange(n_train):
-        t_train[int(trainlabels[n_valid + i]), i] = 1
-
-    n_test = testlabels.size
-    t_test = np.zeros((10, n_test))
-    for i in xrange(n_test):
-        t_test[int(testlabels[i]), i] = 1
-
-    if n_valid > 0:
-        return x_train, t_train, x_test, t_test, x_valid, t_valid
-    else:
-        return x_train, t_train, x_test, t_test
-
-def shuffle_arrays(*args):
-    '''
-    Shuffle multiple arrays using the same random permutation.
-
-    Arguments:
-        args (tuple of ndarrays) : Arrays to shuffle.
-
-    Returns:
-        results (tuple of ndarrays) : Shuffled arrays.
-    '''
-
-    p = np.random.permutation(args[0].shape[1])
-    results = (a[:, p] for a in args)
-    return results
-
-# --- Misc. --- #
-
-def plot_weights(W_list, save_dir=None, suffix=None, normalize=False):
-    '''
-    Plots receptive fields given by weight matrices in W_list.
-
-    Arguments:
-        W_list (list of ndarrays) : List of weight matrices to plot.
-        save_dir (string)         : Directory in which to save the plot.
-        suffix (string)           : Suffix to add to the end of the filename of the plot.
-        normalize (bool)          : Whether to normalize each receptive field. If True,
-                                    the vmin and vmax of each receptive field subplot will
-                                    be independent from the vmin and vmax of the other subplots.
-    '''
-
-    def prime_factors(n):
-        # Get all prime factors of a number n.
-        factors = []
-        lastresult = n
-        if n == 1: # 1 is a special case
-            return [1]
-        while 1:
-            if lastresult == 1:
-                break
-            c = 2
-            while 1:
-                if lastresult % c == 0:
-                    break
-                c += 1
-            factors.append(c)
-            lastresult /= c
-        print("Factors of %d: %s" % (n, str(factors)))
-        return factors
-
-    def find_closest_divisors(n):
-        # Find divisors of a number n that are closest to its square root.
-        a_max = np.floor(np.sqrt(n))
-        if n % a_max == 0:
-            a = a_max
-            b = n/a
-        else:
-            p_fs = prime_factors(n)
-            candidates = np.array([1])
-            for i in xrange(len(p_fs)):
-                f = p_fs[i]
-                candidates = np.union1d(candidates, f*candidates)
-                candidates[candidates > a_max] = 0
-            a = candidates.max()
-            b = n/a
-        print("Closest divisors of %d: %s" % (n, str((int(b), int(a)))))
-        return (int(a), int(b))
-
-    plt.close('all')
-
-    fig = plt.figure(figsize=(18, 9))
-
-    M = len(W_list)
-
-    n = [W.shape[0] for W in W_list]
-    n_in = W_list[0].shape[-1]
-
-    print(M, n)
-
-    grid_specs = [0]*M
-    axes = [ [0]*i for i in n ]
-
-    max_Ws = [ np.amax(W) for W in W_list ]
-
-    min_Ws = [ np.amin(W) for W in W_list ]
-
-    W_sds = [ np.std(W) for W in W_list ]
-    W_avgs = [ np.mean(W) for W in W_list ]
-
-    for m in xrange(M):
-        print("Layer {0} | W_avg: {1:.6f}, W_sd: {2:.6f}.".format(m, np.mean(W_list[m]), np.std(W_list[m])))
-
-    for m in xrange(M):
-        if m == 0:
-            img_Bims = find_closest_divisors(n_in)
-        else:
-            img_Bims = grid_dims
-
-        grid_dims = find_closest_divisors(n[m])
-        grid_dims = (grid_dims[1], grid_dims[0]) # tanspose grid dimensions, to better fit the space
-
-        grid_specs[m] = gs.GridSpec(grid_dims[0], grid_dims[1])
-
-        for k in xrange(n[m]):
-            row = k // grid_dims[1]
-            col = k - row*grid_dims[1]
-
-            axes[m][k] = fig.add_subplot(grid_specs[m][row, col])
-            if normalize:
-                heatmap = axes[m][k].imshow(W_list[m][k].reshape(img_Bims).T, interpolation="nearest", cmap=weight_cmap)
-            else:
-                heatmap = axes[m][k].imshow(W_list[m][k].reshape(img_Bims).T, interpolation="nearest", vmin=W_avgs[m] - 3.465*W_sds[m], vmax=W_avgs[m] + 3.465*W_sds[m], cmap=weight_cmap)
-            axes[m][k].set_xticklabels([])
-            axes[m][k].set_yticklabels([])
-
-            axes[m][k].tick_params(axis='both',  # changes apply to the x-axis
-                                   which='both', # both major and minor ticks are affected
-                                   bottom='off', # ticks along the bottom edge are off
-                                   top='off',    # ticks along the top edge are off
-                                   left='off',   # ticks along the left edge are off
-                                   right='off')  # ticks along the right edge are off
-
-            if m == M-1 and k == 0:
-                plt.colorbar(heatmap)
-
-        grid_specs[m].update(left=float(m)/M,
-                             right=(m+1.0)/M,
-                             hspace=1.0/(grid_dims[0]),
-                             wspace=0.05,
-                             bottom=0.02,
-                             top=0.98)
-
-    if save_dir != None:
-        if suffix != None:
-            plt.savefig(save_dir + 'weights' + suffix + '.png')
-        else:
-            plt.savefig(save_dir + 'weights.png')
-    else:
-        plt.show()

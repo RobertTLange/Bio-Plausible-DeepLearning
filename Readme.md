@@ -27,6 +27,7 @@ This project analyzes different learning rules in deep layered structures. More 
 
 ## TODO - CODING:
 
+* [ ] Restructure for python 3
 * [ ] Evaluate the model more frequently - not only once per epoch
 * [ ] Record weight changes
 * [ ] Get Guergiev Code running/understand
