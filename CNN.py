@@ -97,11 +97,9 @@ def eval_cnn(dataset, batch_size, learning_rate, num_layers=2,
         optimizer = torch.optim.Adam(cnn_model.parameters(), lr=learning_rate)
 
         # Train the network
-        model = train_model("cnn", cnn_model, num_epochs,
-                            X_sub, y_sub, batch_size,
-                            device, optimizer, criterion,
-                            model_fname ="models/temp_model_dnn.ckpt",
-                            verbose=False, logging=False)
+        model = train_model_slim("cnn", cnn_model, num_epochs,
+                                 X_sub, y_sub, batch_size,
+                                 device, optimizer, criterion)
 
         # Compute accuracy on hold-out set
         score_temp = get_test_error("cnn", device, model, X_test, y_test)

@@ -24,13 +24,13 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] get_data - Different datasets - FashionMNIST, CIFAR 10
 * [x] Add plotting of all 3 datasets
 * [x] Get models running on all three datasets
+* [x] Get Guergiev Code running/understand
 
 ## TODO - CODING:
 
 * [ ] Restructure for python 3
-* [ ] Evaluate the model more frequently - not only once per epoch
+* [x] Evaluate the model more frequently - not only once per epoch
 * [ ] Record weight changes
-* [ ] Get Guergiev Code running/understand
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
 * [ ] Work on weight visualization/changes in weights!

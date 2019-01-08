@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from helpers import init_weights, get_data, get_test_error, train_model
+from helpers import init_weights, get_data, get_test_error, train_model_slim
 
 # Dont print depreciation warning
 import warnings
@@ -87,11 +87,9 @@ def eval_dnn(dataset, batch_size, learning_rate, num_layers=2,
         optimizer = torch.optim.Adam(dnn_model.parameters(), lr=learning_rate)
 
         # Train the network
-        model = train_model("dnn", dnn_model, num_epochs,
-                            X_sub, y_sub, batch_size,
-                            device, optimizer, criterion,
-                            model_fname ="models/temp_model_dnn.ckpt",
-                            verbose=False, logging=False)
+        model = train_model_slim("dnn", dnn_model, num_epochs,
+                                 X_sub, y_sub, batch_size,
+                                 device, optimizer, criterion)
 
         # Compute accuracy on hold-out set
         score_temp = get_test_error("dnn", device, model, X_test, y_test)

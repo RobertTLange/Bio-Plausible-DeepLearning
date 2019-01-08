@@ -194,27 +194,54 @@ def get_test_error(model_type, device, model, X_test, y_test):
     return accuracy_score(y_test, y_pred)
 
 
-def report(verbose, losses, batch_sizes, y, y_proba, epoch, time, training=True):
-    template = "{} | epoch {:>2} | "
+def report(verbose, loss, batch_sizes, y, y_proba, batch_cur,
+           batch_total, epoch, time, training=True):
+    template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
 
-    loss = np.average(losses, weights=batch_sizes)
+    # loss = np.average(losses, weights=batch_sizes)
     y_pred = np.argmax(y_proba, axis=1)
     acc = accuracy_score(y, y_pred)
 
-    template += "acc: {:.4f} | loss: {:.4f} | time: {:.2f}"
+    template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
 
     if verbose:
         print(template.format(
-              'train' if training else 'valid', epoch + 1, acc, loss, time))
+              'train' if training else 'valid', epoch + 1, batch_cur, batch_total, acc, loss, time))
         if not training:
-            print('-' * 50)
+            print('-' * 73)
 
     return loss, acc
+
+
+def train_model_slim(model_type, model, num_epochs,
+                     X, y, batch_size,
+                     device, optimizer, criterion):
+    # Report less and no sub, val split for train data - no saving
+    model.to(device)
+
+    if model_type == "dnn":
+        X_train, y_train = (np.squeeze(X), y)
+    elif model_type == "cnn":
+        # No squeze here needed - keep full dimensionality
+        X_train, y_train = (X, y)
+
+    dataset_train = torch.utils.data.TensorDataset(torch.tensor(X_train),
+                                                   torch.tensor(y_train))
+
+    for epoch in range(num_epochs):
+
+        train_out = train_step(model_type, model, dataset_train, batch_size=batch_size,
+                               device=device, criterion=criterion,
+                               optimizer=optimizer)
+
+    return model
+
 
 
 def train_model(model_type, model, num_epochs,
                 X, y, batch_size,
                 device, optimizer, criterion,
+                log_freq,
                 model_fname ="temp_model_dnn.ckpt",
                 verbose=True, logging=True):
     logger = Logger('./logs')
@@ -227,38 +254,81 @@ def train_model(model_type, model, num_epochs,
     if model_type == "dnn":
         X_train, X_valid, y_train, y_valid = (np.squeeze(X[idx_train]),
                                               np.squeeze(X[idx_valid]),
-                                              y[idx_train], y[idx_valid])
+                                              y[idx_train],
+                                              y[idx_valid])
     elif model_type == "cnn":
         # No squeze here needed - keep full dimensionality
         X_train, X_valid, y_train, y_valid = (X[idx_train],
                                               X[idx_valid],
-                                              y[idx_train], y[idx_valid])
+                                              y[idx_train],
+                                              y[idx_valid])
+
+    X_train, X_valid, y_train, y_valid = torch.tensor(X_train), torch.tensor(X_valid), torch.tensor(y_train), torch.tensor(y_valid)
 
     dataset_train = torch.utils.data.TensorDataset(torch.tensor(X_train),
                                                    torch.tensor(y_train))
     dataset_valid = torch.utils.data.TensorDataset(torch.tensor(X_valid),
                                                    torch.tensor(y_valid))
 
+    if model_type == "dnn":
+        dims = list(X_train.shape)
+        dim_flat = np.prod(dims)/X_train.shape[0]
+        X_train, y_train = X_train.reshape(X_train.shape[0], dim_flat).to(device), y_train.to(device)
+    elif model_type == "cnn":
+        X_train, y_train = Xi.to(device), yi.to(device)
+
+    batch_total = len(dataset_train)
+
     for epoch in range(num_epochs):
+        model.train()
+        batch_cur = 0
+        for Xi, yi in torch.utils.data.DataLoader(dataset_train, batch_size=batch_size):
+            tic = time.time()
 
-        train_out = train_step(model_type, model, dataset_train, batch_size=batch_size,
-                               device=device, criterion=criterion,
-                               optimizer=optimizer)
-        train_loss, train_acc = report(verbose, y=y_train, epoch=epoch,
-                                       training=True, **train_out)
+            if model_type == "dnn":
+                dims = list(Xi.shape)
+                dim_flat = np.prod(dims)/Xi.shape[0]
+                Xi, yi = Xi.reshape(Xi.shape[0], dim_flat).to(device), yi.to(device)
+            elif model_type == "cnn":
+                Xi, yi = Xi.to(device), yi.to(device)
 
-        valid_out = valid_step(model_type, model, dataset_valid, batch_size=batch_size,
-                               device=device, criterion=criterion)
-        valid_loss, valid_acc = report(verbose, y=y_valid, epoch=epoch,
-                                       training=False, **valid_out)
+            optimizer.zero_grad()
+
+            y_pred = model(Xi)
+            loss = criterion(y_pred, yi)
+
+            loss.backward()
+            optimizer.step()
+            batch_s = len(Xi)
+
+            toc = time.time()
+            batch_cur += batch_s
+
+            if batch_cur % log_freq == 0:
+                y_pred = model(X_train)
+                loss = criterion(y_pred, y_train)
+
+                train_out = {'loss': loss,
+                             'batch_sizes': batch_s,
+                             'y_proba': y_pred.cpu().detach().numpy(),
+                             'time': toc - tic}
+
+                train_loss, train_acc = report(verbose, y=y_train, batch_cur=batch_cur,
+                                               batch_total=batch_total, epoch=epoch,
+                                               training=True, **train_out)
+
+                valid_out = valid_step(model_type, model, dataset_valid,
+                                       batch_size=batch_size, device=device, criterion=criterion)
+                valid_loss, valid_acc = report(verbose, y=y_valid, batch_cur=batch_cur,
+                                               batch_total=batch_total, epoch=epoch,
+                                               training=False, **valid_out)
+                if logging:
+                    update_logger(logger, epoch+1, epoch*batch_total + batch_cur,
+                                  train_loss, valid_loss, train_acc, valid_acc,
+                                  model)
 
         # Save the model checkpoint
         torch.save(model.state_dict(), model_fname)
-
-        if logging:
-            update_logger(logger, epoch+1, (epoch+1)*len(dataset_train),
-                          train_loss, valid_loss, train_acc, valid_acc,
-                          model)
 
     return model
 
@@ -322,7 +392,7 @@ def valid_step(model_type, model, dataset, device, criterion, batch_size):
     toc = time.time()
 
     return {
-        'losses': losses,
+        'loss': np.average(losses),
         'batch_sizes': batch_sizes,
         'y_proba': torch.cat(y_preds).cpu().detach().numpy(),
         'time': toc - tic,
