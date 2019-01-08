@@ -129,12 +129,12 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(dnn_model.parameters(), lr=0.001)
 
-    model = train_model("dnn", dnn_model, num_epochs,
-                        X, y, batch_size,
-                        device, optimizer, criterion,
-                        model_fname ="models/temp_model_dnn.ckpt",
-                        verbose=True, logging=True)
-
-    # Get test error
-    score = get_test_error("dnn", device, model, X_test, y_test)
-    print("Test Accuracy: {}".format(score))
+    # model = train_model("dnn", dnn_model, num_epochs,
+    #                     X, y, batch_size,
+    #                     device, optimizer, criterion,
+    #                     model_fname ="models/temp_model_dnn.ckpt",
+    #                     verbose=True, logging=True)
+    #
+    # # Get test error
+    # score = get_test_error("dnn", device, model, X_test, y_test)
+    # print("Test Accuracy: {}".format(score))

@@ -25,17 +25,17 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Add plotting of all 3 datasets
 * [x] Get models running on all three datasets
 * [x] Get Guergiev Code running/understand
+* [x] Evaluate the model more frequently - not only once per epoch
 
 ## TODO - CODING:
 
 * [ ] Restructure for python 3
-* [x] Evaluate the model more frequently - not only once per epoch
 * [ ] Record weight changes
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
 * [ ] Work on weight visualization/changes in weights!
 * [ ] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
-* [ ] Runs Bayesian Opt for 10 Epochs and 50 evaluations/BO iterations for 3 datasets
+* [ ] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
 * [ ] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 
 
@@ -51,7 +51,8 @@ This project analyzes different learning rules in deep layered structures. More 
 * [ ] Add first skeleton of report/sections - max 10 pages
     * [ ] Backprop/Notation
     * [ ] Literature Notes
-* [ ] Overview figures (Problems with backprop, Solution approaches)
+* [ ] Overview figure - Problems with backprop
+* [ ] Overview figure - Solution approaches
 
 ## Repository Structure
 ```

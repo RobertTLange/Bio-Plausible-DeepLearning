@@ -4,11 +4,7 @@ import glob
 import tensorflow as tf
 import numpy as np
 import scipy.misc
-try:
-    from StringIO import StringIO  # Python 2.7
-except ImportError:
-    from io import BytesIO         # Python 3.x
-
+import cPickle as pickle
 
 class Logger(object):
 
@@ -105,7 +101,7 @@ def get_latest_log_fname(log_dir):
     return latest_file
 
 
-def process_logger(log_fname, save_fname=None):
+def process_logger_learning(log_fname, save_fname=None):
     iterations = []
     train_losses = []
     val_losses = []
@@ -131,3 +127,60 @@ def process_logger(log_fname, save_fname=None):
                               train_accuracies, val_accuracies])
         np.savetxt(save_fname, out_array)
     return iterations, train_losses, val_losses, train_accuracies, val_accuracies
+
+
+class WeightLogger():
+    def __init__(self, log_dir, wlog_fname, layer_ids):
+        self.iterations = []
+        self.weights = {key: [] for key in layer_ids}
+        self.weight_gradients = {key: [] for key in layer_ids}
+        self.biases = {key: [] for key in layer_ids}
+        self.bias_gradients = {key: [] for key in layer_ids}
+
+        self.save_fname = log_dir + wlog_fname
+
+    def update_weight_logger(self, iter, model):
+        self.iterations.append(iter)
+        for tag, value in model.named_parameters():
+            l_id = int(tag[7])
+            if tag.startswith('layers') and tag.endswith('weight'):
+                self.weights[l_id].append(value.data.cpu().numpy().copy())
+                self.weight_gradients[l_id].append(value.grad.data.cpu().numpy().copy())
+            elif tag.startswith('layers') and tag.endswith('bias'):
+                self.biases[l_id].append(value.data.cpu().numpy().copy())
+                self.bias_gradients[l_id].append(value.grad.data.cpu().numpy().copy())
+
+    def dump_data(self):
+        with open(self.save_fname,'wb') as fp:
+            pickle.dump(self.iterations, fp)
+            pickle.dump(self.weights, fp)
+            pickle.dump(self.weight_gradients, fp)
+            pickle.dump(self.biases, fp)
+            pickle.dump(self.bias_gradients, fp)
+
+
+def process_logger_weights(log_fname):
+    # Load in the Weight Logs
+    with open(log_fname,'rb') as fp:
+        iterations = pickle.load(fp)
+        weights = pickle.load(fp)
+        weight_grad = pickle.load(fp)
+        biases = pickle.load(fp)
+        bias_grad = pickle.load(fp)
+
+    fr_n_weights_ch = {key: [] for key in weights.keys()}
+    fr_n_weight_grad_ch = {key: [] for key in weights.keys()}
+    fr_n_biases_ch = {key: [] for key in weights.keys()}
+    fr_n_bias_grad_ch = {key: [] for key in weights.keys()}
+
+    # Calculate the weight changes based on Frobenius norms
+    # E.g. ||W_0^t+1 - W_0^t||/||W_0^t||
+    for l_id in weights.keys():
+        for i in range(1, len(weights[l_id])):
+            fr_n_weights_ch[l_id].append(np.linalg.norm(weights[l_id][i] - weights[l_id][i-1])/np.linalg.norm(weights[l_id][i-1]))
+            fr_n_weight_grad_ch[l_id].append(np.linalg.norm(weight_grad[l_id][i] - weight_grad[l_id][i-1])/np.linalg.norm(weight_grad[l_id][i-1]))
+            fr_n_biases_ch[l_id].append(np.linalg.norm(biases[l_id][i] - biases[l_id][i-1])/np.linalg.norm(biases[l_id][i-1]))
+            fr_n_bias_grad_ch[l_id].append(np.linalg.norm(bias_grad[l_id][i] - bias_grad[l_id][i-1])/np.linalg.norm(bias_grad[l_id][i-1]))
+
+    # return iterations, weights, weight_grad, biases, bias_grad
+    return iterations[1:], fr_n_weights_ch, fr_n_weight_grad_ch, fr_n_biases_ch, fr_n_bias_grad_ch

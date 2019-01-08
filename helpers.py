@@ -14,7 +14,7 @@ from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from logger import Logger, update_logger
+from logger import Logger, update_logger, WeightLogger
 
 data_dir = os.getcwd() + "/data"
 global data_dir
@@ -169,6 +169,15 @@ def load_cifar_10(negatives=False):
     return X, y
 
 
+def to_one_hot(y_train, y_test):
+    # Convert label vector into one-hot-encoded vector
+    oh_y_train = np.zeros((y_train.shape[0], 10))
+    oh_y_test = np.zeros((y_test.shape[0], 10))
+
+    oh_y_train[np.arange(oh_y_train.shape[0]), y_train] = 1
+    oh_y_test[np.arange(oh_y_test.shape[0]), y_test] = 1
+
+    return oh_y_train, oh_y_test
 """
 - Modeling specific helpers
     a. Xavier initialization of all layers
@@ -230,12 +239,12 @@ def train_model_slim(model_type, model, num_epochs,
 
     for epoch in range(num_epochs):
 
-        train_out = train_step(model_type, model, dataset_train, batch_size=batch_size,
+        train_out = train_step(model_type, model, dataset_train,
+                               batch_size=batch_size,
                                device=device, criterion=criterion,
                                optimizer=optimizer)
 
     return model
-
 
 
 def train_model(model_type, model, num_epochs,
@@ -244,9 +253,10 @@ def train_model(model_type, model, num_epochs,
                 log_freq,
                 model_fname ="temp_model_dnn.ckpt",
                 verbose=True, logging=True):
-    logger = Logger('./logs')
 
-    model.to(device)
+    if logging:
+        logger = Logger('./logs')
+        weight_logger = WeightLogger('./logs', '/weight_log.pkl', [0, 2])
 
     # Select data
     idx_train, idx_valid = next(iter(StratifiedKFold(5, random_state=0).split(np.arange(len(X)), y)))
@@ -274,8 +284,10 @@ def train_model(model_type, model, num_epochs,
         dims = list(X_train.shape)
         dim_flat = np.prod(dims)/X_train.shape[0]
         X_train, y_train = X_train.reshape(X_train.shape[0], dim_flat).to(device), y_train.to(device)
+        X_valid, y_valid = X_valid.reshape(X_valid.shape[0], dim_flat).to(device), y_valid.to(device)
     elif model_type == "cnn":
-        X_train, y_train = Xi.to(device), yi.to(device)
+        X_train, y_train = X_train.to(device), y_train.to(device)
+        X_valid, y_valid = X_valid.to(device), y_valid.to(device)
 
     batch_total = len(dataset_train)
 
@@ -283,7 +295,6 @@ def train_model(model_type, model, num_epochs,
         model.train()
         batch_cur = 0
         for Xi, yi in torch.utils.data.DataLoader(dataset_train, batch_size=batch_size):
-            tic = time.time()
 
             if model_type == "dnn":
                 dims = list(Xi.shape)
@@ -300,25 +311,27 @@ def train_model(model_type, model, num_epochs,
             loss.backward()
             optimizer.step()
             batch_s = len(Xi)
-
-            toc = time.time()
             batch_cur += batch_s
 
             if batch_cur % log_freq == 0:
+                tic = time.time()
                 y_pred = model(X_train)
                 loss = criterion(y_pred, y_train)
+                toc = time.time()
 
                 train_out = {'loss': loss,
                              'batch_sizes': batch_s,
                              'y_proba': y_pred.cpu().detach().numpy(),
                              'time': toc - tic}
 
-                train_loss, train_acc = report(verbose, y=y_train, batch_cur=batch_cur,
+                train_loss, train_acc = report(verbose, y=y_train,
+                                               batch_cur=batch_cur,
                                                batch_total=batch_total, epoch=epoch,
                                                training=True, **train_out)
 
-                valid_out = valid_step(model_type, model, dataset_valid,
-                                       batch_size=batch_size, device=device, criterion=criterion)
+                valid_out = valid_step(model_type, model, X_valid, y_valid,
+                                       batch_s,
+                                       device=device, criterion=criterion)
                 valid_loss, valid_acc = report(verbose, y=y_valid, batch_cur=batch_cur,
                                                batch_total=batch_total, epoch=epoch,
                                                training=False, **valid_out)
@@ -326,10 +339,11 @@ def train_model(model_type, model, num_epochs,
                     update_logger(logger, epoch+1, epoch*batch_total + batch_cur,
                                   train_loss, valid_loss, train_acc, valid_acc,
                                   model)
+                    weight_logger.update_weight_logger(epoch*batch_total + batch_cur, model)
+                    weight_logger.dump_data()
 
         # Save the model checkpoint
         torch.save(model.state_dict(), model_fname)
-
     return model
 
 
@@ -367,34 +381,19 @@ def train_step(model_type, model, dataset, device, criterion, batch_size, optimi
     }
 
 
-def valid_step(model_type, model, dataset, device, criterion, batch_size):
+def valid_step(model_type, model, X_valid, y_valid, batch_s, device, criterion):
 
     model.eval()
-    y_preds = []
-    losses = []
-    batch_sizes = []
     tic = time.time()
     with torch.no_grad():
-        for Xi, yi in torch.utils.data.DataLoader(dataset, batch_size=batch_size):
-            if model_type == "dnn":
-                dims = list(Xi.shape)
-                dim_flat = np.prod(dims)/Xi.shape[0]
-                Xi, yi = Xi.reshape(Xi.shape[0], dim_flat).to(device), yi.to(device)
-            elif model_type == "cnn":
-                Xi, yi = Xi.to(device), yi.to(device)
-            y_pred = model(Xi)
-            loss = criterion(y_pred, yi)
-
-            y_preds.append(y_pred)
-            loss = loss.item()
-            losses.append(loss)
-            batch_sizes.append(len(Xi))
+        y_pred = model(X_valid)
+        loss = criterion(y_pred, y_valid)
     toc = time.time()
 
     return {
-        'loss': np.average(losses),
-        'batch_sizes': batch_sizes,
-        'y_proba': torch.cat(y_preds).cpu().detach().numpy(),
+        'loss': loss,
+        'batch_sizes': batch_s,
+        'y_proba': y_pred.cpu().detach().numpy(),
         'time': toc - tic,
     }
 
