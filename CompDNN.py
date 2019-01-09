@@ -51,12 +51,6 @@ def shuffle_arrays(*args):
 
 class Network:
     def __init__(self, n, X_train, y_train, X_test, y_test):
-        '''
-        Initialize the network. Note: This also loads the MNIST dataset.
-
-        Arguments:
-            n (tuple) : Number of units in each layer of the network, eg. (500, 100, 10).
-        '''
 
         if type(n) == int:
             n = (n,)
@@ -66,7 +60,6 @@ class Network:
 
         self.n_neurons_per_category = int(self.n[-1]/10)
 
-        # load MNIST
         self.x_train, self.t_train, self.x_test, self.t_test = X_train, y_train, X_test, y_test
 
         self.n_in  = self.x_train.shape[0] # input size
@@ -77,17 +70,10 @@ class Network:
 
         self.current_epoch = None # current epoch of simulation
 
-        print("Creating network with {} layers.".format(self.M))
-        print("--------------------------------")
-
         self.init_weights()
         self.init_layers()
 
     def init_weights(self):
-        '''
-        Initialize the weights of the network.
-        '''
-
         if use_weight_optimization:
             # initial weight optimization parameters
             V_avg = 3                  # desired average of dendritic potential
@@ -164,23 +150,6 @@ class Network:
                 self.Y[m].ravel()[self.Y_dropout_indices[m]] = 0
                 self.Y[m] *= 5
 
-        # print initial weights info
-        self.print_weights()
-
-        print("--------------------------------")
-
-    def print_weights(self):
-        print("Current network weights:")
-        print("--------------------------------")
-        for m in xrange(self.M-1, -1, -1):
-            print("Layer {0} -- {1} units.".format(m, self.n[m]))
-            print("\tW_avg: {0:.6f},\tW_sd: {1:.6f}.".format(np.mean(self.W[m]), np.std(self.W[m])))
-            print("\tb_avg: {0:.6f},\tb_sd: {1:.6f}.".format(np.mean(self.b[m]), np.std(self.b[m])))
-            if m != self.M-1:
-                print("\tY_avg: {0:.6f},\tY_sd: {1:.6f}.".format(np.mean(self.Y[m]), np.std(self.Y[m])))
-                if use_feedback_bias:
-                    print("\tc_avg: {0:.6f},\tc_sd: {1:.6f}.".format(np.mean(self.c[m]), np.std(self.c[m])))
-
     def make_weights_symmetric(self):
         '''
         Make the feedback weights in the network symmetric to (transposes of) the feedforward weights.
@@ -221,10 +190,6 @@ class Network:
                     self.Y[m] = W_above
 
     def init_layers(self):
-        '''
-        Create the layers of the network.
-        '''
-
         # initialize layers list
         self.l = []
 
@@ -575,8 +540,6 @@ class Network:
                                           If None, the current value of the network's 'current_epoch' attribute
                                           determines the state of the simulation.
         '''
-
-        print("Starting training.\n")
 
         if b_etas == None and update_feedback_weights:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")

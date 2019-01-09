@@ -26,15 +26,17 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Get models running on all three datasets
 * [x] Get Guergiev Code running/understand
 * [x] Evaluate the model more frequently - not only once per epoch
+* [x] Record weight changes
+* [x] Work on weight visualization/changes in weights!
+* [x] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
 
 ## TODO - CODING:
 
-* [ ] Restructure for python 3
-* [ ] Record weight changes
+* [ ] Restructure for python 3? +: cleaner folder structure, -: New env setup :(
 * [ ] Restructure Guergiev code and integrate into current pipeline
+* [ ] Optimize the code - run faster time it!
+* [ ] Add a BO pipeline for guergiev
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
-* [ ] Work on weight visualization/changes in weights!
-* [ ] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
 * [ ] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
 * [ ] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 

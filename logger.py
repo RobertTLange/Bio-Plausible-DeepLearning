@@ -101,26 +101,39 @@ def get_latest_log_fname(log_dir):
     return latest_file
 
 
-def process_logger_learning(log_fname, save_fname=None):
+def process_logger_learning(log_fnames, save_fname=None):
     iterations = []
     train_losses = []
     val_losses = []
     train_accuracies = []
     val_accuracies = []
 
-    for e in tf.train.summary_iterator(log_fname):
-        for v in e.summary.value:
-            if v.tag == 'train_loss':
-                train_losses.append(v.simple_value)
-            elif v.tag == 'valid_loss':
-                val_losses.append(v.simple_value)
-            elif v.tag == 'train_accuracy':
-                train_accuracies.append(v.simple_value)
-            elif v.tag == 'valid_accuracy':
-                val_accuracies.append(v.simple_value)
-        iterations.append(int(e.step))
+    for log_fname in log_fnames:
+        its = []
+        train_loss = []
+        val_loss = []
+        train_acc = []
+        val_acc = []
 
-    iterations = np.unique(iterations)[1:]
+        for e in tf.train.summary_iterator(log_fname):
+            for v in e.summary.value:
+                if v.tag == 'train_loss':
+                    train_loss.append(v.simple_value)
+                elif v.tag == 'valid_loss':
+                    val_loss.append(v.simple_value)
+                elif v.tag == 'train_accuracy':
+                    train_acc.append(v.simple_value)
+                elif v.tag == 'valid_accuracy':
+                    val_acc.append(v.simple_value)
+            its.append(int(e.step))
+
+        its = np.unique(its)[1:]
+
+        iterations.append(its)
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        train_accuracies.append(train_acc)
+        val_accuracies.append(val_acc)
 
     if save_fname is not None:
         out_array = np.array([iterations, train_losses, val_losses,
