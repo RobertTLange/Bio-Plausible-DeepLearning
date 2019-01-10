@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 """
 - Define plot helper functions
+0. Smooth Time Series
 1. Plot learning curves for single dataset
 2. Plot learning curves for all datasets
 3. Plot Individual image from either (Fashion-)MNIST or CIFAR-10
@@ -10,21 +11,43 @@ import matplotlib.pyplot as plt
 5. Plot Frobenius norm of relative weight changes and gradient changes
 """
 
-def plot_learning(its, train_acc, val_acc, train_loss, val_loss, pl_type, title):
+def smooth(ts, windowSize):
+    # Perform smoothed moving average with specified window to time series
+    weights = np.repeat(1.0, windowSize) / windowSize
+    ts_MA = np.convolve(ts, weights, 'valid')
+    return ts_MA
+
+def plot_learning(its, train_acc, val_acc,
+                  train_loss, val_loss,
+                  sm_window, pl_type, title):
+    # Transform ticks such that they have numb x 10^5 shape
+    its_ticks = np.arange(100000, np.max(its), 100000)
+    its_labels_temp = [str(it/100000) for it in its_ticks]
+    its_labels = [it_l + r"$\times 10^5$" for it_l in its_labels_temp]
+    its_labels[0] = r"$10^5$"
+
+    if sm_window > 1:
+        train_acc = smooth(train_acc, sm_window)
+        val_acc = smooth(val_acc, sm_window)
+        train_loss = smooth(train_loss, sm_window)
+        val_loss = smooth(val_loss, sm_window)
+
     if pl_type == "accuracy":
-        plt.plot(its, train_acc, c="r", label="Train Accuracy")
-        plt.plot(its, val_acc, c="g", label="Validation Accuracy")
+        plt.plot(its[sm_window-1:], train_acc, c="r", label="Train Accuracy")
+        plt.plot(its[sm_window-1:], val_acc, c="g", label="Validation Accuracy")
         plt.ylabel('Accuracy')
         plt.title(title)
+        plt.xticks(its_ticks, its_labels)
     elif pl_type == "loss":
-        plt.plot(its, train_loss, c="b", label="Train Loss")
-        plt.plot(its, val_loss, c="y", label="Validation Loss")
-        plt.xlabel('Iteration')
+        plt.plot(its[sm_window-1:], train_loss, c="b", label="Train Loss")
+        plt.plot(its[sm_window-1:], val_loss, c="y", label="Validation Loss")
+        plt.xlabel('Data Points')
         plt.ylabel('Loss')
+        plt.xticks(its_ticks, its_labels)
     plt.legend(loc=7)
 
 def plot_all_learning(its, train_accs, val_accs,
-                      train_losses, val_losses,
+                      train_losses, val_losses, sm_window,
                       sub_titles, save_fname=None):
     plt.figure(figsize=(10, 8), dpi=200)
 
@@ -34,12 +57,12 @@ def plot_all_learning(its, train_accs, val_accs,
         counter += 1
         plt.subplot(2, len(train_losses), counter)
         plot_learning(its[i], train_accs[i], val_accs[i],
-                      train_losses[i], val_losses[i], "accuracy",
-                      sub_titles[i])
+                      train_losses[i], val_losses[i],
+                      sm_window, "accuracy", sub_titles[i])
         plt.subplot(2, len(train_losses), counter+len(train_losses))
         plot_learning(its[i], train_accs[i], val_accs[i],
-                      train_losses[i], val_losses[i], "loss",
-                      sub_titles[i])
+                      train_losses[i], val_losses[i],
+                      sm_window, "loss", sub_titles[i])
 
     plt.tight_layout()
     if save_fname is not None:
