@@ -54,8 +54,7 @@
 \def\R{\mathbb{R}}
 
 \usepackage{todonotes}
-\newcommand{\rob}[1]{\todo[inline, color=red!40!white]{Robert: #1}}
-
+\newcommand{\rob}[1]{\todo[color=red!40!white]{Robert: #1}}
 %-----------------------------------------------------------------
 \title{Biologically Plausible Deep Learning: \\
 		A Critical Literature Review}
@@ -299,8 +298,11 @@ Questions:
 	\caption{Illustration of the 10 different classes/labels of the analyzed datasets. \textbf{Top Row:} MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Middle Row:} Fashion-MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Bottom Row:} CIFAR-10 dataset. Data format: $60000 \times 3 \times 32 \times 32$. From top to bottom the intra-class variability/entropy increases significantly. We normalize the pixel values to lie within $[0, 1]$ and reshape the images into vector format (e.g. $X \in [0, 1]^{784}$) before training the classifiers. This helps dealing with erratic gradient behavior.}	
 \end{figure}
 
+\missingfigure{Learning performance comparison.}
 
 \subsection*{Learning Dynamics}
+
+\missingfigure{Plot of weight change dynamics/convergence.}
 
 \subsection*{Hyperparameter Robustness}
 
@@ -313,7 +315,7 @@ Bayesian Optimization \rob{Add BO classic reference} is a probabilistic techniqu
 In this report we have empirically investigated the robustness and learning dynamics of an alternative learning rule in deep layered structures.
 We first reviewed and formalized the classical backpropagation algorithm. Afterwards, we put on computational neuroscience googles and highlighted several short-comings such as the weight transport problem as well the necessity to propagate signed errors.
 In Section 3 of this report we then introduced the methodology outlined by \citet{guerguiev2017} which intends to overcome such limitations. Inspired by dendritic compartments and information integration at different sites, the algorithm solves the weight transport problem.
-In Section 4 we reviewed more current approaches and compared their benefits and limitations. Thereby, we highlight the difference between behavioral and neurophysiological realism. Furthermore, we discuss the differences between learning and architecture complexity across the different approaches.
+In Section 4 we reviewed more current approaches and compared their benefits and limitations. Thereby, we highlight the difference between behavioral and neurophysiological realism. Furthermore, we discuss the differences between learning and architecture complexity across the different approaches. 
 Afterwards, we implement the approach by \citet{guerguiev2017} and compare model selection as well as hyperparameter robustness across different popular datasets. Our experiments reveal major performance decreases. This brings up the following question: Why should the brain implement a suboptimal \textbf{and} non-robust learning rule on a neurophysiological level? A simple answer to this is the flexibility that such an alternative architecture comes with.
 
 

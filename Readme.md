@@ -29,6 +29,7 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Record weight changes
 * [x] Work on weight visualization/changes in weights!
 * [x] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
+* [x] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
 
 ## TODO - CODING:
 
@@ -37,7 +38,6 @@ This project analyzes different learning rules in deep layered structures. More 
 * [ ] Optimize the code - run faster time it!
 * [ ] Add a BO pipeline for guergiev
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
-* [ ] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
 * [ ] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 
 
@@ -62,7 +62,7 @@ Bio-Plausible-DeepLearning
 +- workspace.ipynb: Main workspace notebook - Execute for replication
 ```
 
-## How to use this code
+## (Basic) How to use this code
 1. Clone the repo.
 ```
 git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning
@@ -70,11 +70,11 @@ cd Bio-Plausible-DeepLearning
 ```
 2. Create a virtual environment (optional but recommended).
 ```
-virtualenv -p python BPDL
+virtualenv -p python BioDL
 ```
 Activate the env (the following command works on Linux, other operating systems might differ):
 ```
-source BPDL/bin/activate
+source BioDL/bin/activate
 ```
 3. Install all dependencies:
 ```
@@ -82,11 +82,13 @@ pip install -r requirements.txt
 ```
 4. Run the main notebook:
 ```
-jupyter notebook workspace.ipynb
+jupyter notebook workspace_*.ipynb
 ```
 
 
-## Jupyter Env Setup and Setup on AWS Virtual Machine Instance
+## (Advanced) Jupyter Env on AWS EC2 Instance Setup
+
+During the course of this project I trained many models. Running the Bayesian Optimization (BO) pipeline takes a while. More specifically, we run 50 iterations of the BO pipeline
 
 1. Clone repo, Create/Activate the environment and install dependencies
 ```
@@ -108,7 +110,7 @@ ssh -N -f -L localhost:2411:localhost:8080 MACHINE_IP_ADDRESS
 4. In Browser open localhost port and start working on the notebook of choice. If required copy paste the token/set a password
 ```
 localhost:2411
-``
+```
 
 ## Jupyter Env Cleanup
 conda env remove -n BioDL

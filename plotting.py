@@ -109,7 +109,8 @@ def plot_labels(X, y, labels, save_fname=None):
 
 def plot_weight_dev(its, fr_n_weights_ch, fr_n_weight_grad_ch,
                     fr_n_biases_ch, fr_n_bias_grad_ch,
-                    title='Learning Dynamics and Convergence of Optimization'):
+                    title='Learning Dynamics and Convergence of Optimization',
+                    save_fname=None):
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 16), dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
@@ -133,10 +134,14 @@ def plot_weight_dev(its, fr_n_weights_ch, fr_n_weight_grad_ch,
     ax4.legend()
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
+    if save_fname is not None:
+        plt.savefig(save_fname, dpi=300)
+        print("Saved figure to {}".format(save_fname))
 
-def plot_bo_acc_distr(mnist_acc, fashion_acc, cifar10_acc, title):
-    fig, axs = plt.subplots(1, 3, figsize=(10, 8),
-                                                 dpi=200, sharey='row')
+
+def plot_bo_acc_distr(mnist_acc, fashion_acc, cifar10_acc,
+                      title, save_fname=None):
+    fig, axs = plt.subplots(1, 3, figsize=(10, 8), dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
 
     n, bins, patches = axs[0].hist(mnist_acc, 50, density=1,
@@ -152,4 +157,8 @@ def plot_bo_acc_distr(mnist_acc, fashion_acc, cifar10_acc, title):
     axs[2].set_title("50 Iterations: CIFAR-10")
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    if save_fname is not None:
+        plt.savefig(save_fname, dpi=300)
+        print("Saved figure to {}".format(save_fname))
     return
