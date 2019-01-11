@@ -1,5 +1,6 @@
 import os
 import gzip
+import json
 import tarfile
 import wget
 import time
@@ -16,8 +17,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from logger import Logger, update_logger, WeightLogger
 
-data_dir = os.getcwd() + "/data"
 global data_dir
+data_dir = os.getcwd() + "/data"
 """
 - Dataset specific helpers
     a. Download data from original sources if not already done
@@ -400,6 +401,25 @@ def valid_step(model_type, model, X_valid, y_valid, batch_s, device, criterion):
 
 def update_tensor_dim(W_in, k_size, padding, stride):
     return (W_in - k_size + 2*padding)/stride + 1
+
+
+"""
+Post-Processing/Plotting helpers
+1. Load in accuracies from BO Log files
+"""
+
+def get_accuracies_bo_log(log_fname):
+    kfold_test_acc = []
+    with open(log_fname, "r") as j:
+        while True:
+            try:
+                iteration = next(j)
+            except StopIteration:
+                break
+
+            iteration = json.loads(iteration)
+            kfold_test_acc.append(iteration["target"])
+    return kfold_test_acc
 
 #if __name__ == "__main__":
     # get_data(num_samples=100, dataset="MNIST")

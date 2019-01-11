@@ -46,6 +46,7 @@ def plot_learning(its, train_acc, val_acc,
         plt.xticks(its_ticks, its_labels)
     plt.legend(loc=7)
 
+
 def plot_all_learning(its, train_accs, val_accs,
                       train_losses, val_losses, sm_window,
                       sub_titles, save_fname=None):
@@ -72,7 +73,6 @@ def plot_all_learning(its, train_accs, val_accs,
 
 
 def plot_images(x, y, row_id, labels):
-
     l_id = y[row_id]
     pixels = x[row_id, :]
     pixels = np.array(pixels, dtype='uint8')
@@ -132,3 +132,24 @@ def plot_weight_dev(its, fr_n_weights_ch, fr_n_weight_grad_ch,
     ax4.set_ylabel(r"$\frac{||\nabla b_{t+1} - \nabla b_{t}||_F}{||\nabla b_{t}||_F}$", fontsize=15)
     ax4.legend()
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+
+def plot_bo_acc_distr(mnist_acc, fashion_acc, cifar10_acc, title):
+    fig, axs = plt.subplots(1, 3, figsize=(10, 8),
+                                                 dpi=200, sharey='row')
+    fig.suptitle(title, fontsize=18)
+
+    n, bins, patches = axs[0].hist(mnist_acc, 50, density=1,
+                                   facecolor='green', alpha=0.75)
+    axs[0].set_title("50 Iterations: MNIST")
+
+    n, bins, patches = axs[1].hist(fashion_acc, 50, density=1,
+                                   facecolor='green', alpha=0.75)
+    axs[1].set_title("50 Iterations: Fashion-MNIST")
+
+    n, bins, patches = axs[2].hist(cifar10_acc, 50, density=1,
+                                   facecolor='green', alpha=0.75)
+    axs[2].set_title("50 Iterations: CIFAR-10")
+
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    return

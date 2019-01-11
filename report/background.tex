@@ -23,6 +23,9 @@
 \usetikzlibrary{positioning}
 \usetikzlibrary{calc}
 
+\usepackage{amssymb,amsmath}
+\usepackage{mathtools}
+
 \usepackage{color}
 \usepackage[font=small,labelfont=bf]{caption}
 %----------------
@@ -48,14 +51,17 @@
 
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
- 
+\def\R{\mathbb{R}}
+
+\usepackage{todonotes}
+\newcommand{\rob}[1]{\todo[inline, color=red!40!white]{Robert: #1}}
+
 %-----------------------------------------------------------------
-\title{Models of Neural Systems (WiSe 2018/2019)\\
-	   Final Project - Computer Practical \\
-	   Biologically Plausible Deep Learning}
+\title{Biologically Plausible Deep Learning: \\
+		A Critical Literature Review}
 
 \author{
-  Robert T. Lange \thanks{This progress report was submitted as part of the final project of the "Models of Neural Systems" computer practical course.} \\
+  Robert T. Lange \thanks{This progress report was submitted as part of the final project of the "Models of Neural Systems" (Winter Term 2018/2019) computer practical course taught and organized by Prof. Richard Kempter (Bernstein Center for Computational Neuroscience, Berlin).} \\
   Einstein Center for Neurosciences Berlin\\
   \url{robert.lange17@imperial.ac.uk} \\
   \url{www.rob-lange.com} \\
@@ -77,13 +83,39 @@ Previously it has been argued that such an architecture overcomes multiple point
 %--------------------------------------------------------------------
 \section{Introduction}
 
-Deep Learning (DL) has been the poster child of Machine Learning success in the 21st century. It has dominated competitions and research across all domains (computer vision, natural language processing, robotics as well as computational neuroscience). 
+Deep Learning (DL) has rightfully been the poster child of Machine Learning success in the 21st century. It has dominated competitions and research across all domains (computer vision, natural language processing, robotics as well as computational neuroscience). 
 
 %--------------------------------------------------------------------
 \newpage
 \section{Credit Assignment in Deep Layered Structures}
 
+In the following section, we will briefly set the ground for our following investigations. More specifically, we introduce all required notation as well as background and problematic considerations regarding backpropagation.\footnote{In terms of notation we follow \citet{bartunov2018} who provide a wonderful outline as well as review.} Finally, we briefly discuss the physiological characteristics of pyramidal neurons found in sensory cortices. 
+
+Arguably, Deep Learning's most simple layered architecture is the Multi-Layer Perceptron (MLP). A MLP composes multiple layers $\{h_l\}_{l=1}^L$ of non-linear and affine transformations:
+
+$$h_l \coloneqq f(h_{l-1}; \theta) = \sigma_l (W_l h_{l-1} + b_l)$$ 
+
+In a classification task the final output layer $h_L$ represents the output distribution over the possible labels. In order to train such a composition one has to define a loss function. A standard classification loss function is given by the cross-entropy between the actual labels distribution, $q(y|x)$, and the output distribution of the network, $p(y|h_L)$:
+
+$$\mathcal{L}(h_L) = - \sum_y q(y|x) log p(y|h_L)$$
+
 \subsection*{Backpropagation: A Successful Deep Learning Perspective}
+
+In order to train the parameters $\{\theta\}_{l=1}^L$ of a network one makes of powerful auto-differentiation tools and stochastic or batch gradient descent methods.
+
+\begin{equation}
+	\frac{\partial \mathcal{L}}{\partial h_l} = \left(\frac{dh_{l+1}}{d h_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l+1}}
+\end{equation}
+
+\begin{equation}
+	\frac{\partial \mathcal{L}}{\partial \theta_l} = \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l}}
+\end{equation}
+
+\begin{equation}
+	\frac{dh_{l+1}}{dh_l} = W_{l+1} diag\left(\sigma_{l+1}'(W_{l+1}h_l +b_{l+1})\right)
+\end{equation}
+
+In order to compute the gradient with respect to the parameters of a specific layer $l$, one has to first compute a forward pass of the network to obtain predictions $\hat{y} \coloneqq h_L$. Afterwards, one is able to compute a loss-based error signal. 
 
 \subsection*{Backpropagation: A Critical Neuroscience Perspective}
 
@@ -95,8 +127,6 @@ ADD FIGURE WITH KEY POINTS OF CRITIQUE
 %--------------------------------------------------------------------
 \newpage
 \section{Literature Review}
-
-ADD FIGURE WHICH COMPARES ALL APPROACHES - TREE OR TABLE
 
 \subsection*{Feedback Alignment - \citet{lillicrap2016}}
 
@@ -191,7 +221,7 @@ Questions:
 
 %--------------------------------------------------------------------
 \newpage
-\section*{Local Synaptic Rules with Dendritic Integration}
+\section{Local Synaptic Learning Rules with Dendritic Integration}
 
 \subsection*{\citet{guerguiev2017} - A Plausible Alternative?}
 
@@ -251,6 +281,11 @@ Questions:
 * Think of learning (accurate gradient approx) vs architecture (depth, number of hyperparameters) complexity
 * Different interneuron types (PV = parvalbumin-positive) - different types of errors (generative)
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{../figures/report/lit_rev}
+	\caption{Literature Review.}	
+\end{figure}
 
 %--------------------------------------------------------------------
 \newpage
@@ -258,9 +293,18 @@ Questions:
 
 \subsection*{Scalability Across Datasets}
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{../figures/report/datasets}
+	\caption{Illustration of the 10 different classes/labels of the analyzed datasets. \textbf{Top Row:} MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Middle Row:} Fashion-MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Bottom Row:} CIFAR-10 dataset. Data format: $60000 \times 3 \times 32 \times 32$. From top to bottom the intra-class variability/entropy increases significantly. We normalize the pixel values to lie within $[0, 1]$ and reshape the images into vector format (e.g. $X \in [0, 1]^{784}$) before training the classifiers. This helps dealing with erratic gradient behavior.}	
+\end{figure}
+
+
 \subsection*{Learning Dynamics}
 
 \subsection*{Hyperparameter Robustness}
+
+Bayesian Optimization \rob{Add BO classic reference} is a probabilistic technique commonly used to optimize the parameters of complex functions which are costly to evaluate. Computing cross-validated test accuracies of deep networks is one such costly function. Instead of randomly searching through the hyperparameter space, one approximates the loss function $\mathcal{L}^{k-fold}(\theta|X, y)$ with the help of a Gaussian Process (GP).
 
 %--------------------------------------------------------------------
 \newpage
