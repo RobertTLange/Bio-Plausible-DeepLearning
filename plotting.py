@@ -1,6 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Define color blind-friendly color cycle
+CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                  '#f781bf', '#a65628', '#984ea3',
+                  '#999999', '#e41a1c', '#dede00']
+
+
 """
 - Define plot helper functions
 0. Smooth Time Series
@@ -35,18 +41,19 @@ def plot_learning(its, train_acc, val_acc,
         val_loss = smooth(val_loss, sm_window)
 
     if pl_type == "accuracy":
-        plt.plot(its[sm_window-1:], train_acc, c="r", label="Train Accuracy")
-        plt.plot(its[sm_window-1:], val_acc, c="g", label="Validation Accuracy")
+        plt.plot(its[sm_window-1:], train_acc, c="r", label="BP-MLP: Train")
+        plt.plot(its[sm_window-1:], val_acc, c="g", label="BP-MLP: Val.")
         plt.ylabel('Accuracy')
         plt.title(title)
-        plt.xticks(its_ticks, its_labels)
+        plt.xticks(its_ticks, [])
+        plt.legend(loc=4, fontsize=8)
     elif pl_type == "loss":
-        plt.plot(its[sm_window-1:], train_loss, c="b", label="Train Loss")
-        plt.plot(its[sm_window-1:], val_loss, c="y", label="Validation Loss")
+        plt.plot(its[sm_window-1:], train_loss, c="b", label="BP-MLP: Train")
+        plt.plot(its[sm_window-1:], val_loss, c="y", label="BP-MLP: Val.")
         plt.xlabel('Data Points')
         plt.ylabel('Loss')
         plt.xticks(its_ticks, its_labels)
-    plt.legend(loc=7)
+        plt.legend(loc=1, fontsize=8)
 
 
 def plot_all_learning(its, train_accs, val_accs,
@@ -145,29 +152,29 @@ def plot_bo_results(bo_data, title, save_fname=None):
     fig, axs = plt.subplots(3, 3, figsize=(10, 8), dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
 
-    labels = ["MNIST", "Fashion-MNIST", "CIFAR-10"]
-    # Plot the time-series of BO evaluations
-    for i in range(len(bo_data[0])):
-        axs[0, i].plot(np.arange(1, len(bo_data[0][i])+1), bo_data[0][i])
-        axs[0, i].set_title("Evaluations: " + labels[i])
-        axs[0, i].set_xlabel("BO Iteration")
-        if i == 0:
-            axs[0, i].set_ylabel("k-fold CV Test Accuracy")
+    data_labels = ["MNIST", "Fashion-MNIST", "CIFAR-10"]
+    algo_labels = ["BP: MLP", "BP: CNN", "SegComp:MLP"]
+    # Run Loop over different Algorithms
+    for j in range(len(bo_data)):
+        # Plot the time-series of BO evaluations
+        for i in range(len(data_labels)):
+            axs[0, i].plot(np.arange(1, len(bo_data[j][i])+1), bo_data[j][i])
+            axs[0, i].set_title("Evaluations: " + data_labels[i])
+            axs[0, i].set_xlabel("BO Iteration")
+            if i == 0:
+                axs[0, i].set_ylabel("k-fold CV Test Accuracy")
 
-    # Plot the Histogramm of k-Fold CV Test Accuracies
-    for i in range(len(bo_data[0])):
-        axs[1, i].hist(bo_data[0][i], 50, density=1, alpha=0.75)
-        axs[1, i].set_title("Histogramm: " + labels[i])
-        axs[1, i].set_xlabel("k-fold CV Test Accuracy")
+            axs[1, i].hist(bo_data[j][i], 50, density=1, alpha=0.75)
+            axs[1, i].set_title("Histogramm: " + data_labels[i])
+            axs[1, i].set_xlabel("k-fold CV Test Accuracy")
 
-    # Plot the Histogramm of k-Fold CV Test Accuracies
-    for i in range(len(bo_data[0])):
-        axs[2, i].boxplot(bo_data[0][i], vert=True,
-                          patch_artist=True)
-        axs[2, i].set_title("Boxplot: " + labels[i])
-        axs[2, i].set_xticklabels(["BP: MLP"], rotation=45, fontsize=8)
-        if i == 0:
-            axs[2, i].set_ylabel("k-fold CV Test Accuracy")
+            axs[2, i].boxplot(bo_data[j][i], vert=True,
+                              patch_artist=True)
+            axs[2, i].set_title("Boxplot: " + data_labels[i])
+            axs[2, i].set_xticklabels(algo_labels[:(j+1)],
+                                      rotation=45, fontsize=8)
+            if i == 0:
+                axs[2, i].set_ylabel("k-fold CV Test Accuracy")
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 

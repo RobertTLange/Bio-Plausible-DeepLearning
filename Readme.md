@@ -1,67 +1,18 @@
 # Biological Plausible Deep Learning
-## Author: Robert Tjarko Lange | December 2018
+## Author: Robert Tjarko Lange | January 2019
 
-This project analyzes different learning rules in deep layered structures. More specifically, we explore alternatives to backpropagation (aka the chain rule). Weight transport (access to all weights at every layer of the backward pass) renders backpropagation biologically implausible. Recent alternatives explore local learning rules and draw inspiration from the compartmental design of pyramidal neurons.
+This project analyzes the performance and dynamics different learning rules in deep layered structures. More specifically, we explore alternatives to backpropagation (aka the chain rule). A few reasons for why this is interesting:
 
-## DONE:
+1. Weight transport (access to all weights at every layer of the backward pass) renders backpropagation biologically implausible.
+2. Global signed error transmission as well as matrix transposition both are computationally expensive.
+3. The brain is more about communication than computation.
 
-* [x] PyTorch MLP/CNN baseline for MNIST
-* [x] Create remote repo
-* [x] Generalize network architecture to variable inputs
-* [x] Write update_logger, process_logger function
-* [x] Plot learning curves - output from logger
-* [x] Add Xavier init for networks
-* [x] Rewrite architecture and simplify code
-* [x] Tried running in colab
-* [x] Set up bayesian optimization pipeline - BayesianOptimization
-    * [x] implement cross-validation with torch data/skorch
-    * [x] one fct taking in hyperparams, return objective
-    * [x] write fct that transforms cont variables to discrete
-    * [x] check how to add folds/add input to eval_nn, BO pipeline
- 	* [x] Generalize BO pipeline to CNN
-    * [x] Write fct that checks if BO CNN proposal is valid (kernel/in/out)
-    * [x] Add logging to BO pipeline
-* [x] get_data - Different datasets - FashionMNIST, CIFAR 10
-* [x] Add plotting of all 3 datasets
-* [x] Get models running on all three datasets
-* [x] Get Guergiev Code running/understand
-* [x] Evaluate the model more frequently - not only once per epoch
-* [x] Record weight changes
-* [x] Work on weight visualization/changes in weights!
-* [x] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
-* [x] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
-* [x] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
-
-## TODO - CODING:
-
-* [ ] Restructure for python 3? +: cleaner folder structure, -: New env setup :(
-* [ ] Restructure Guergiev code and integrate into current pipeline
-* [ ] Optimize the code - run faster time it!
-* [ ] Run BO pipeline for CNNs - figure out memory usage
-* [ ] Add a BO pipeline for guergiev
-* [ ] Add comments! - Look up pep8 standard for fcts/classes
-
-
-
-## TODO - REPORT:
-
-* [ ] Read papers/Add first notes of papers
-    * [x] Lillicrap et al (2016)
-    * [ ] Guergiev et al (2017)
-    * [x] Bartunov et al (2018)
-    * [x] Sacramento et al (2018)
-    * [ ] Larkum (2013)
-    * [ ] Whittington, Bogacz (2017)
-* [ ] Add first skeleton of report/sections - max 10 pages
-    * [x] Backprop/Notation
-    * [ ] Literature Notes
-* [ ] Overview figure - Problems with backprop
-* [x] Overview figure - Solution approaches
+Recent alternatives explore local learning rules and draw inspiration from the compartmental design of pyramidal neurons. Apical compartments integrate top-down information while basal dendritic compartments collect bottom-up information. This way one does not require separate pathways and instead exploits the electrical segregation observed in the physiology of pyramidal neurons in sensory cortices.
 
 ## Repository Structure
 ```
 Bio-Plausible-DeepLearning
-+- workspace.ipynb: Main workspace notebook - Execute for replication
+├── workspace.ipynb: Main workspace notebook - Execute for replication
 ```
 
 ## (Basic) How to use this code
@@ -87,10 +38,9 @@ pip install -r requirements.txt
 jupyter notebook workspace_*.ipynb
 ```
 
-
 ## (Advanced) Jupyter Env on AWS EC2 Instance Setup
 
-During the course of this project I trained many models. Running the Bayesian Optimization (BO) pipeline takes a while. More specifically, we run 50 iterations of the BO pipeline
+During the course of this project I trained many models. More specifically, I run 50 iterations of the BO pipeline for all three analyzed datasets as well as all three model types (Backprop MLP, Backprop CNN, Segregated Comp MLP). Running the Bayesian Optimization (BO) pipeline takes a while. Therefore, I run most of the analysis on a **p2.xlarge** AWS EC2 instance which utilizes a Tesla K80 GPU. In total training should take no more than 24 hours. Depending on the AMI that you use and whether or not you use a demand/spot instance, this should cost around 15$. I recommend the AWS Deep Learning Base AMI.
 
 1. Clone repo, Create/Activate the environment and install dependencies
 ```
@@ -119,5 +69,8 @@ scp -i keyname.pem -r user@MACHINE_IP_ADDRESS:Bio-Plausible-DeepLearning .
 ```
 
 ## Jupyter Env Cleanup
+
+```
 conda env remove -n BioDL
 jupyter kernelspec uninstall BioDL
+```

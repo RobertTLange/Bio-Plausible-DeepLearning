@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[colorinlistoftodos]{article}
 
 % if you need to pass options to natbib, use, e.g.:
 % \PassOptionsToPackage{numbers, compress}{natbib}
@@ -54,7 +54,7 @@
 \def\R{\mathbb{R}}
 
 \usepackage{todonotes}
-\newcommand{\rob}[1]{\todo[color=red!40!white]{Rob: #1}}
+\newcommand{\rob}[1]{\todo[color=red!40]{Rob: #1}}
 %-----------------------------------------------------------------
 \title{Biologically Plausible Deep Learning: \\
 		A Critical Review}
@@ -71,14 +71,14 @@
 
 \maketitle
 
-\listoftodos
+\listoftodos[Todo-List for Rob]
 
 %--------------------------------------------------------------------
 
 \begin{abstract}
 Backpropagation provides a biologically implausible solution to the synaptic credit assignment problem in Deep Learning. Computational graphs and the chain rule successfully provide approximate gradients in deep layered structures. But the empirical success does not necessarily imply that the brain is capable of implementing such a procedure. 
 In this report we review different proposed solutions to such problems that render backpropagation biologically implausible. More specifically, we focus on an approach which implements local plasticity rules in a neural network architecture with dendritic compartments \citep{guerguiev2017}.
-Previously it has been argued that such an architecture overcomes multiple points of critique while accomplishing similar strong results. Our robustness checks reveal that such a claim is not justified. 
+Previously it has been argued that such an architecture overcomes multiple points of critique while accomplishing similar strong results. Our robustness checks reveal that such a claim is not justified.
 \end{abstract}
 
 %--------------------------------------------------------------------
