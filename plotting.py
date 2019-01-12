@@ -11,11 +11,13 @@ import matplotlib.pyplot as plt
 5. Plot Frobenius norm of relative weight changes and gradient changes
 """
 
+
 def smooth(ts, windowSize):
     # Perform smoothed moving average with specified window to time series
     weights = np.repeat(1.0, windowSize) / windowSize
     ts_MA = np.convolve(ts, weights, 'valid')
     return ts_MA
+
 
 def plot_learning(its, train_acc, val_acc,
                   train_loss, val_loss,
@@ -69,7 +71,6 @@ def plot_all_learning(its, train_accs, val_accs,
     if save_fname is not None:
         plt.savefig(save_fname, dpi=300)
         print("Saved figure to {}".format(save_fname))
-    #plt.show()
 
 
 def plot_images(x, y, row_id, labels):
@@ -112,7 +113,8 @@ def plot_weight_dev(its, fr_n_weights_ch, fr_n_weight_grad_ch,
                     title='Learning Dynamics and Convergence of Optimization',
                     save_fname=None):
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 16), dpi=200, sharey='row')
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 16),
+                                                 dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
 
     ax1.plot(its, fr_n_weights_ch, label="DNN - Backprop")
@@ -139,22 +141,33 @@ def plot_weight_dev(its, fr_n_weights_ch, fr_n_weight_grad_ch,
         print("Saved figure to {}".format(save_fname))
 
 
-def plot_bo_acc_distr(mnist_acc, fashion_acc, cifar10_acc,
-                      title, save_fname=None):
-    fig, axs = plt.subplots(1, 3, figsize=(10, 8), dpi=200, sharey='row')
+def plot_bo_results(bo_data, title, save_fname=None):
+    fig, axs = plt.subplots(3, 3, figsize=(10, 8), dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
 
-    n, bins, patches = axs[0].hist(mnist_acc, 50, density=1,
-                                   facecolor='green', alpha=0.75)
-    axs[0].set_title("50 Iterations: MNIST")
+    labels = ["MNIST", "Fashion-MNIST", "CIFAR-10"]
+    # Plot the time-series of BO evaluations
+    for i in range(len(bo_data[0])):
+        axs[0, i].plot(np.arange(1, len(bo_data[0][i])+1), bo_data[0][i])
+        axs[0, i].set_title("Evaluations: " + labels[i])
+        axs[0, i].set_xlabel("BO Iteration")
+        if i == 0:
+            axs[0, i].set_ylabel("k-fold CV Test Accuracy")
 
-    n, bins, patches = axs[1].hist(fashion_acc, 50, density=1,
-                                   facecolor='green', alpha=0.75)
-    axs[1].set_title("50 Iterations: Fashion-MNIST")
+    # Plot the Histogramm of k-Fold CV Test Accuracies
+    for i in range(len(bo_data[0])):
+        axs[1, i].hist(bo_data[0][i], 50, density=1, alpha=0.75)
+        axs[1, i].set_title("Histogramm: " + labels[i])
+        axs[1, i].set_xlabel("k-fold CV Test Accuracy")
 
-    n, bins, patches = axs[2].hist(cifar10_acc, 50, density=1,
-                                   facecolor='green', alpha=0.75)
-    axs[2].set_title("50 Iterations: CIFAR-10")
+    # Plot the Histogramm of k-Fold CV Test Accuracies
+    for i in range(len(bo_data[0])):
+        axs[2, i].boxplot(bo_data[0][i], vert=True,
+                          patch_artist=True)
+        axs[2, i].set_title("Boxplot: " + labels[i])
+        axs[2, i].set_xticklabels(["BP: MLP"], rotation=45, fontsize=8)
+        if i == 0:
+            axs[2, i].set_ylabel("k-fold CV Test Accuracy")
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 

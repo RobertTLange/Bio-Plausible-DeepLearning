@@ -30,15 +30,17 @@ This project analyzes different learning rules in deep layered structures. More 
 * [x] Work on weight visualization/changes in weights!
 * [x] Work on error propagation comparison/delta W (||W_t - W_t-1||/||W_t||)
 * [x] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
+* [x] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 
 ## TODO - CODING:
 
 * [ ] Restructure for python 3? +: cleaner folder structure, -: New env setup :(
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Optimize the code - run faster time it!
+* [ ] Run BO pipeline for CNNs - figure out memory usage
 * [ ] Add a BO pipeline for guergiev
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
-* [ ] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
+
 
 
 ## TODO - REPORT:
@@ -51,10 +53,10 @@ This project analyzes different learning rules in deep layered structures. More 
     * [ ] Larkum (2013)
     * [ ] Whittington, Bogacz (2017)
 * [ ] Add first skeleton of report/sections - max 10 pages
-    * [ ] Backprop/Notation
+    * [x] Backprop/Notation
     * [ ] Literature Notes
 * [ ] Overview figure - Problems with backprop
-* [ ] Overview figure - Solution approaches
+* [x] Overview figure - Solution approaches
 
 ## Repository Structure
 ```
@@ -98,18 +100,22 @@ conda create --name BioDL python=2.7 --no-default-packages
 source activate BioDL
 pip install -r requirements.txt --quiet
 ```
-2. Add ipykernel to listed env kernels, Launch notebook silent and open port
+2. Add ipykernel to listed env kernels, Launch notebook silent and open port (start a screen session in between!)
 ```
 python -m ipykernel install --user --name BioDL --display-name "Python2 (BioDL)"
 jupyter notebook --no-browser --port=8080
 ```
 3. In new terminal window on local machine rewire port and listen
 ```
-ssh -N -f -L localhost:2411:localhost:8080 MACHINE_IP_ADDRESS
+ssh -i keyname.pem -N -f -L localhost:2411:localhost:8080 user@MACHINE_IP_ADDRESS
 ```
-4. In Browser open localhost port and start working on the notebook of choice. If required copy paste the token/set a password
+4. In Browser open localhost port and start working on the notebook of choice. If required copy paste the token/set a password. Afterwards run notebook of choice
 ```
 localhost:2411
+```
+5. After computations are done either git add, comnmit, push to remote repo or copy files back.
+```
+scp -i keyname.pem -r user@MACHINE_IP_ADDRESS:Bio-Plausible-DeepLearning .
 ```
 
 ## Jupyter Env Cleanup

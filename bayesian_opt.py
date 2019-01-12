@@ -17,6 +17,7 @@ from helpers import update_tensor_dim
 import warnings
 warnings.filterwarnings("ignore")
 
+
 def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
           num_epochs, k_fold, logging, verbose):
 
@@ -28,7 +29,7 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
     )
 
     log_fname = "./logs/bo_logs_" + func_type + "_" + dataset + ".json"
-    temp_fname = "./logs/bo_logs_" + func_type + "_" + dataset +  "_session.json"
+    temp_fname = "./logs/bo_logs_" + func_type + "_" + dataset + "_session.json"
 
     # Try to merge logs if previous BO opt fct was interrupted
     merge_json_logs(log_fname, temp_fname)
@@ -70,7 +71,8 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
         time_t = time.time() - tic
 
         if verbose:
-            print(template.format(_ + 1, target, optimizer.max['target'], time_t))
+            print(template.format(_ + 1, target,
+                                  optimizer.max['target'], time_t))
 
     # Finally merge both logs into single log
     merge_json_logs(log_fname, temp_fname)
@@ -93,6 +95,7 @@ def invalid_kernel_size(next_point, input_size):
         if W_in <= 0:
             return True
     return False
+
 
 def check_next_point(next_point):
     # Assert/Enforce that params have correct type (dicrete/continuous) for BO
@@ -120,14 +123,10 @@ def merge_json_logs(fname1, fname2):
 def get_iter_log(fname):
     counter = 0
     with open(fname) as outfile:
-         while True:
+        while True:
             try:
                 iteration = next(outfile)
                 counter += 1
             except StopIteration:
                 break
     return counter
-
-if __name__ == "__main__":
-    log_fname = os.getcwd() + "/logs/bo_logs_dnn.json"
-    temp_fname = os.getcwd() + "/logs/bo_logs_dnn_temp.json"

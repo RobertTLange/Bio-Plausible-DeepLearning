@@ -11,7 +11,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
 
 from logger import Logger, update_logger
-from helpers import init_weights, get_data, get_test_error, train_model, update_tensor_dim
+from helpers import init_weights, get_data, get_test_error, train_model, update_tensor_dim, train_model_slim
 
 # Dont print depreciation warning
 import warnings
