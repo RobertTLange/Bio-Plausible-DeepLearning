@@ -46,13 +46,13 @@ During the course of this project I trained many models. More specifically, I ru
 ```
 git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning
 cd Bio-Plausible-DeepLearning
-conda create --name BioDL python=2.7 --no-default-packages
+conda create --name BioDL python=3.6 --no-default-packages
 source activate BioDL
 pip install -r requirements.txt --quiet
 ```
 2. Add ipykernel to listed env kernels, Launch notebook silent and open port (start a screen session in between!)
 ```
-python -m ipykernel install --user --name BioDL --display-name "Python2 (BioDL)"
+python -m ipykernel install --user --name BioDL --display-name "Python3 (BioDL)"
 jupyter notebook --no-browser --port=8080
 ```
 3. In new terminal window on local machine rewire port and listen

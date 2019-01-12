@@ -9,10 +9,10 @@ from bayes_opt.event import Events
 from bayes_opt.observer import JSONLogger
 
 # Import Network Architectures
-from DNN import eval_dnn
-from CNN import eval_cnn, update_tensor_dim
+from models.DNN import eval_dnn
+from models.CNN import eval_cnn, update_tensor_dim
 
-from helpers import update_tensor_dim
+from utils.helpers import update_tensor_dim
 # Dont print depreciation warning
 import warnings
 warnings.filterwarnings("ignore")

@@ -15,7 +15,7 @@ from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from logger import Logger, update_logger, WeightLogger
+from utils.logger import Logger, update_logger, WeightLogger
 
 global data_dir
 data_dir = os.getcwd() + "/data"
@@ -117,7 +117,7 @@ def get_mnist(d_type):
 
 def unpickle(file):
     with open(file, 'rb') as fo:
-        data = pickle.load(fo)
+        data = pickle.load(fo, encoding='bytes')
     return data
 
 
@@ -197,7 +197,7 @@ def get_test_error(model_type, device, model, X_test, y_test):
     if model_type == "dnn":
         dims = list(X_test.shape)
         dim_flat = np.prod(dims)/X_test.shape[0]
-        X_test = X_test.reshape(X_test.shape[0], dim_flat)
+        X_test = X_test.reshape(X_test.shape[0], int(dim_flat))
     X_test = torch.tensor(X_test).to(device)
     with torch.no_grad():
         y_pred = model(X_test).cpu().numpy().argmax(1)
@@ -284,8 +284,8 @@ def train_model(model_type, model, num_epochs,
     if model_type == "dnn":
         dims = list(X_train.shape)
         dim_flat = np.prod(dims)/X_train.shape[0]
-        X_train, y_train = X_train.reshape(X_train.shape[0], dim_flat).to(device), y_train.to(device)
-        X_valid, y_valid = X_valid.reshape(X_valid.shape[0], dim_flat).to(device), y_valid.to(device)
+        X_train, y_train = X_train.reshape(X_train.shape[0], int(dim_flat)).to(device), y_train.to(device)
+        X_valid, y_valid = X_valid.reshape(X_valid.shape[0], int(dim_flat)).to(device), y_valid.to(device)
     elif model_type == "cnn":
         X_train, y_train = X_train.to(device), y_train.to(device)
         X_valid, y_valid = X_valid.to(device), y_valid.to(device)
@@ -300,7 +300,7 @@ def train_model(model_type, model, num_epochs,
             if model_type == "dnn":
                 dims = list(Xi.shape)
                 dim_flat = np.prod(dims)/Xi.shape[0]
-                Xi, yi = Xi.reshape(Xi.shape[0], dim_flat).to(device), yi.to(device)
+                Xi, yi = Xi.reshape(Xi.shape[0], int(dim_flat)).to(device), yi.to(device)
             elif model_type == "cnn":
                 Xi, yi = Xi.to(device), yi.to(device)
 
@@ -360,7 +360,7 @@ def train_step(model_type, model, dataset, device, criterion, batch_size, optimi
         if model_type == "dnn":
             dims = list(Xi.shape)
             dim_flat = np.prod(dims)/Xi.shape[0]
-            Xi, yi = Xi.reshape(Xi.shape[0], dim_flat).to(device), yi.to(device)
+            Xi, yi = Xi.reshape(Xi.shape[0], int(dim_flat)).to(device), yi.to(device)
         elif model_type == "cnn":
             Xi, yi = Xi.to(device), yi.to(device)
         optimizer.zero_grad()

@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from helpers import init_weights, get_data, get_test_error, train_model_slim
+from utils.helpers import init_weights, get_data, get_test_error, train_model_slim
 
 # Dont print depreciation warning
 import warnings
