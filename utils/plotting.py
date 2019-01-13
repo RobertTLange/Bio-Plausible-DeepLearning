@@ -30,7 +30,7 @@ def plot_learning(its, train_acc, val_acc,
                   sm_window, pl_type, title):
     # Transform ticks such that they have numb x 10^5 shape
     its_ticks = np.arange(100000, np.max(its), 100000)
-    its_labels_temp = [str(it/100000) for it in its_ticks]
+    its_labels_temp = [str(int(it/100000)) for it in its_ticks]
     its_labels = [it_l + r"$\times 10^5$" for it_l in its_labels_temp]
     its_labels[0] = r"$10^5$"
 
@@ -115,32 +115,40 @@ def plot_labels(X, y, labels, save_fname=None):
     plt.show()
 
 
-def plot_weight_dev(its, fr_n_weights_ch, fr_n_weight_grad_ch,
-                    fr_n_biases_ch, fr_n_bias_grad_ch,
+def plot_weight_dev(its, l_id, fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch,
                     title='Learning Dynamics and Convergence of Optimization',
                     save_fname=None):
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 16),
-                                                 dpi=200, sharey='row')
+    its_ticks = np.arange(100000, np.max(its[2]), 100000)
+    its_labels_temp = [str(int(it/100000)) for it in its_ticks]
+    its_labels = [it_l + r"$\times 10^5$" for it_l in its_labels_temp]
+    its_labels[0] = r"$10^5$"
+
+    fig, axs = plt.subplots(3, 3, figsize=(10, 8), dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
+    data_labels = ["MNIST", "Fashion-MNIST", "CIFAR-10"]
 
-    ax1.plot(its, fr_n_weights_ch, label="DNN - Backprop")
-    ax1.set_ylabel(r"$\frac{||W_{t+1} - W_{t}||_F}{||W_{t}||_F}$", fontsize=15)
-    ax1.legend()
+    for i in range(len(fr_n_weights)):
+        axs[0, i].plot(its[i], fr_n_weights[i][l_id], label="DNN - Backprop")
+        axs[0, i].set_ylabel(r"$||W_{t}||_F$", fontsize=15)
+        axs[0, i].legend()
+        axs[0, i].set_title(data_labels[i])
+        axs[0, i].set_xticks(its_ticks)
+        axs[0, i].set_xticklabels([])
 
-    ax2.plot(its, fr_n_biases_ch, label="DNN - Backprop")
-    ax2.set_ylabel(r"$\frac{||b_{t+1} - b_{t}||_F}{||b_{t}||_F}$", fontsize=15)
-    ax2.legend()
+        axs[1, i].plot(its[i], fr_n_weights_ch[i][l_id], label="DNN - Backprop")
+        axs[1, i].set_ylabel(r"$\frac{||W_{t} - W_{t-1}||_F}{||W_{t-1}||_F}$",
+                             fontsize=15)
+        axs[1, i].set_xticks(its_ticks)
+        axs[1, i].set_xticklabels([])
+        axs[1, i].legend()
 
-    ax3.plot(its, fr_n_weight_grad_ch, label="DNN - Backprop")
-    ax3.set_xlabel("Iteration", fontsize=15)
-    ax3.set_ylabel(r"$\frac{||\nabla W_{t+1} - \nabla W_{t}||_F}{||\nabla W_{t}||_F}$", fontsize=15)
-    ax3.legend()
+        axs[2, i].plot(its[i], fr_n_weights_grad_ch[i][l_id], label="DNN - Backprop")
+        axs[2, i].set_ylabel(r"$\frac{||\nabla W_{t+1} - \nabla W_{t}||_F}{||\nabla W_{t}||_F}$", fontsize=15)
+        axs[2, i].set_xticks(its_ticks)
+        axs[2, i].set_xticklabels(its_labels)
+        axs[2, i].legend()
 
-    ax4.plot(its, fr_n_bias_grad_ch, label="DNN - Backprop")
-    ax4.set_xlabel("Iteration", fontsize=15)
-    ax4.set_ylabel(r"$\frac{||\nabla b_{t+1} - \nabla b_{t}||_F}{||\nabla b_{t}||_F}$", fontsize=15)
-    ax4.legend()
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if save_fname is not None:

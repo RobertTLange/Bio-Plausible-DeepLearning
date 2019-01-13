@@ -31,11 +31,11 @@
 * [x] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 * [x] Restructure for python 3? +: cleaner folder structure, -: New env setup :(
 * [x] Check what is wrong with reload of BO logs
+* [x] Make weight logging not store whole weights but only stats!
+* [x] Change weight change plot for all three datasets
 
 ## TODO - CODING:
 
-* [ ] Make weight logging not store whole weights but only stats!
-* [ ] Change weight change plot for all three datasets
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Optimize the code - run faster time it!
 * [ ] Run BO pipeline for CNNs - figure out memory usage
