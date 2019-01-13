@@ -35,6 +35,7 @@
 ## TODO - CODING:
 
 * [ ] Make weight logging not store whole weights but only stats!
+* [ ] Change weight change plot for all three datasets
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Optimize the code - run faster time it!
 * [ ] Run BO pipeline for CNNs - figure out memory usage

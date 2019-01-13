@@ -252,12 +252,12 @@ def train_model(model_type, model, num_epochs,
                 X, y, batch_size,
                 device, optimizer, criterion,
                 log_freq,
-                model_fname ="temp_model_dnn.ckpt",
+                model_fname="temp_model_dnn",
                 verbose=True, logging=True):
 
     if logging:
         logger = Logger('./logs')
-        weight_logger = WeightLogger('./logs', '/weight_log.pkl', [0, 2])
+        weight_logger = WeightLogger('./logs', '/weight_log_' + model_fname + "_" + str(num_epochs) + 'epochs.pkl', [0, 2])
 
     # Select data
     idx_train, idx_valid = next(iter(StratifiedKFold(5, random_state=0).split(np.arange(len(X)), y)))
@@ -344,7 +344,7 @@ def train_model(model_type, model, num_epochs,
                     weight_logger.dump_data()
 
         # Save the model checkpoint
-        torch.save(model.state_dict(), model_fname)
+        torch.save(model.state_dict(), "./models/" + model_fname + ".ckpt")
     return model
 
 

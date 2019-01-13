@@ -96,7 +96,7 @@ def update_logger(logger, epoch, its,
 
 
 def get_latest_log_fname(log_dir):
-    list_of_files = glob.glob(log_dir + "/*") # * means all if need specific format then *.csv
+    list_of_files = glob.glob(log_dir + "/*")
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
@@ -145,10 +145,18 @@ def process_logger_learning(log_fnames, save_fname=None):
 class WeightLogger():
     def __init__(self, log_dir, wlog_fname, layer_ids):
         self.iterations = []
-        self.weights = {key: [] for key in layer_ids}
-        self.weight_gradients = {key: [] for key in layer_ids}
-        self.biases = {key: [] for key in layer_ids}
-        self.bias_gradients = {key: [] for key in layer_ids}
+        self.weights = {key: None for key in layer_ids}
+        self.weight_gradients = {key: None for key in layer_ids}
+        self.biases = {key: None for key in layer_ids}
+        self.bias_gradients = {key: None for key in layer_ids}
+
+        self.fr_n_weights = {key: [] for key in layer_ids}
+        self.fr_n_weights_ch = {key: [] for key in layer_ids}
+        self.fr_n_weights_grad_ch = {key: [] for key in layer_ids}
+
+        self.fr_n_biases = {key: [] for key in layer_ids}
+        self.fr_n_biases_ch = {key: [] for key in layer_ids}
+        self.fr_n_biases_grad_ch = {key: [] for key in layer_ids}
 
         self.save_fname = log_dir + wlog_fname
 
@@ -157,43 +165,66 @@ class WeightLogger():
         for tag, value in model.named_parameters():
             l_id = int(tag[7])
             if tag.startswith('layers') and tag.endswith('weight'):
-                self.weights[l_id].append(value.data.cpu().numpy().copy())
-                self.weight_gradients[l_id].append(value.grad.data.cpu().numpy().copy())
+                if len(self.iterations) > 1:
+                    self.compute_stats(l_id, value, "weights")
+                self.weights[l_id] = value.data.cpu().numpy().copy()
+                self.weight_gradients[l_id] = value.grad.data.cpu().numpy().copy()
+
             elif tag.startswith('layers') and tag.endswith('bias'):
-                self.biases[l_id].append(value.data.cpu().numpy().copy())
-                self.bias_gradients[l_id].append(value.grad.data.cpu().numpy().copy())
+                if len(self.iterations) > 1:
+                    self.compute_stats(l_id, value, "biases")
+                self.biases[l_id] = value.data.cpu().numpy().copy()
+                self.bias_gradients[l_id] = value.grad.data.cpu().numpy().copy()
+
+    def compute_stats(self, l_id, value, param_type):
+        temp_param = value.data.cpu().numpy().copy()
+        temp_grad_param = value.grad.data.cpu().numpy().copy()
+
+        if param_type == "weights":
+            temp_param_old = self.weights[l_id]
+            temp_grad_param_old = self.weight_gradients[l_id]
+        elif param_type == "biases":
+            temp_param_old = self.biases[l_id]
+            temp_grad_param_old = self.bias_gradients[l_id]
+
+        fr_n_param = np.linalg.norm(temp_param)
+        fr_n_ch = np.linalg.norm(temp_param - temp_param_old)/np.linalg.norm(temp_param_old)
+        fr_n_grad_ch = np.linalg.norm(temp_grad_param - temp_grad_param_old)/np.linalg.norm(temp_grad_param_old)
+
+        if param_type == "weights":
+            self.fr_n_weights[l_id].append(fr_n_param)
+            self.fr_n_weights_ch[l_id].append(fr_n_ch)
+            self.fr_n_weights_grad_ch[l_id].append(fr_n_grad_ch)
+        elif param_type == "biases":
+            self.fr_n_biases[l_id].append(fr_n_param)
+            self.fr_n_biases_ch[l_id].append(fr_n_ch)
+            self.fr_n_biases_grad_ch[l_id].append(fr_n_grad_ch)
 
     def dump_data(self):
-        with open(self.save_fname,'wb') as fp:
+        with open(self.save_fname, 'wb') as fp:
             pickle.dump(self.iterations, fp)
-            pickle.dump(self.weights, fp)
-            pickle.dump(self.weight_gradients, fp)
-            pickle.dump(self.biases, fp)
-            pickle.dump(self.bias_gradients, fp)
+
+            pickle.dump(self.fr_n_weights, fp)
+            pickle.dump(self.fr_n_weights_ch, fp)
+            pickle.dump(self.fr_n_weights_grad_ch, fp)
+
+            pickle.dump(self.fr_n_biases, fp)
+            pickle.dump(self.fr_n_biases_ch, fp)
+            pickle.dump(self.fr_n_biases_grad_ch, fp)
 
 
 def process_logger_weights(log_fname):
     # Load in the Weight Logs
-    with open(log_fname,'rb') as fp:
-        iterations = pickle.load(fp)
-        weights = pickle.load(fp)
-        weight_grad = pickle.load(fp)
-        biases = pickle.load(fp)
-        bias_grad = pickle.load(fp)
+    with open(log_fname, 'rb') as fp:
+        iterations = pickle.load(fp, encoding='latin1')
 
-    fr_n_weights_ch = {key: [] for key in weights.keys()}
-    fr_n_weight_grad_ch = {key: [] for key in weights.keys()}
-    fr_n_biases_ch = {key: [] for key in weights.keys()}
-    fr_n_bias_grad_ch = {key: [] for key in weights.keys()}
+        fr_n_weights = pickle.load(fp, encoding='latin1')
+        fr_n_weights_ch = pickle.load(fp, encoding='latin1')
+        fr_n_weights_grad_ch = pickle.load(fp, encoding='latin1')
 
-    # Calculate the weight changes based on Frobenius norms
-    # E.g. ||W_0^t+1 - W_0^t||/||W_0^t||
-    for l_id in weights.keys():
-        for i in range(1, len(weights[l_id])):
-            fr_n_weights_ch[l_id].append(np.linalg.norm(weights[l_id][i] - weights[l_id][i-1])/np.linalg.norm(weights[l_id][i-1]))
-            fr_n_weight_grad_ch[l_id].append(np.linalg.norm(weight_grad[l_id][i] - weight_grad[l_id][i-1])/np.linalg.norm(weight_grad[l_id][i-1]))
-            fr_n_biases_ch[l_id].append(np.linalg.norm(biases[l_id][i] - biases[l_id][i-1])/np.linalg.norm(biases[l_id][i-1]))
-            fr_n_bias_grad_ch[l_id].append(np.linalg.norm(bias_grad[l_id][i] - bias_grad[l_id][i-1])/np.linalg.norm(bias_grad[l_id][i-1]))
+        fr_n_biases = pickle.load(fp, encoding='latin1')
+        fr_n_biases_ch = pickle.load(fp, encoding='latin1')
+        fr_n_biases_grad_ch = pickle.load(fp, encoding='latin1')
 
     # return iterations, weights, weight_grad, biases, bias_grad
-    return iterations[1:], fr_n_weights_ch, fr_n_weight_grad_ch, fr_n_biases_ch, fr_n_bias_grad_ch
+    return iterations[1:], fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch, fr_n_biases, fr_n_biases_ch, fr_n_biases_grad_ch

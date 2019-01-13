@@ -116,7 +116,6 @@ def merge_json_logs(fname1, fname2):
                     except StopIteration:
                         break
                     iteration = json.loads(iteration)
-                    print(iteration)
                     outfile.write(json.dumps(iteration) + "\n")
 
         os.remove(fname2)
