@@ -9,6 +9,10 @@ This project analyzes the performance and dynamics different learning rules in d
 
 Recent alternatives explore local learning rules and draw inspiration from the compartmental design of pyramidal neurons. Apical compartments integrate top-down information while basal dendritic compartments collect bottom-up information. This way one does not require separate pathways and instead exploits the electrical segregation observed in the physiology of pyramidal neurons in sensory cortices.
 
+For more blabla and blublub please check out the following two documents:
+* [Final Report](report/background.pdf)
+* [Final Presentation](report/presentation.pdf)
+
 ## Repository Structure
 ```
 Bio-Plausible-DeepLearning

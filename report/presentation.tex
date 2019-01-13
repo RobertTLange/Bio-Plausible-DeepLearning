@@ -71,6 +71,29 @@
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\N}{\ensuremath{\mathcal{N}}}
 
+
+\pgfdeclareimage[width=0.7\paperwidth]{mybackground}{../figures/report/datasets}
+%
+%\setbeamertemplate{title page}{
+%
+%        \begin{picture}(0,0)
+%
+%            \put(-30,-100){%
+%                \pgfuseimage{mybackground}
+%            }
+%
+%            \put(0,-110.7){%
+%                \begin{minipage}[b][45mm][t]{226mm}
+%                    \usebeamerfont{title}{\inserttitle\par}
+%                    	\usebeamerfont{author}{\insertauthor\par}
+%                \end{minipage}
+%            }
+%
+%            \end{picture}
+%
+%    }
+
+
 \begin{document}
 
 %------------------------------------------------------------------------------%
@@ -87,7 +110,6 @@
 \author{\texorpdfstring{Robert Tjarko Lange\thanks{\url{https://github.com/RobertTLange/Bio-Plausible-DeepLearning}}
 						\newline\url{rtl17@ic.ac.uk}
 						\newline\url{www.rob-lange.com}
-	%\newline\url{github.com/RobertTLange/DeepLearning_StuSti}
 	}
 	{Author}}
 
@@ -99,31 +121,44 @@
 %------------------------------------------------------------------------------%
 
 \begin{frame}[noframenumbering]
+
 \titlepage
+\begin{picture}(0,0)
+\put(+25,+0){\pgfuseimage{mybackground}}
+\end{picture}
 \end{frame}
 
 %------------------------------------------------------------------------------%
-\begin{frame}{Conclusion}
+\begin{frame}{Motivation}
 \vspace{-0.5cm}
 
 \end{frame}
+
+%------------------------------------------------------------------------------%
+\begin{frame}{Literature Review}
+\vspace{-0.5cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{../figures/report/lit_rev}
+\end{figure}
+
+\end{frame}
+
+%------------------------------------------------------------------------------%
+\begin{frame}{\citet{guerguiev2017}}
+\vspace{-0.5cm}
+
+
+
+\end{frame}
+
 
 %------------------------------------------------------------------------------%
 
 \begin{frame}{What's next?}
 \vspace{-0.5cm}
 
-\begin{itemize}
-	\item Large action spaces $\Rightarrow$ Combine with DQNs:
-\end{itemize}
-
-	$$L(\theta) = \mathbb{E}_{s,a,r,s' \sim D} \left[(r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a; \theta))^2\right]$$
-	
-	$$L(\theta) = \mathbb{E}_{s,m,r^{\tau_m},s', \tau \sim D_{\tau_m}} \left[(r^{\tau_m} + \gamma^{\tau_m} \max_{m'} Q(s',m';\theta^-) - Q(s,m; \theta))^2\right]$$
-\begin{itemize}	
-	\item Large terminal vocabularies ($\mathcal{A}$) $\Rightarrow$ Motor control tasks
-	\item Investigate grammar development $\to$ Observation: First update is especially important \\ $\Rightarrow$ Grammar Learning as a form of decaying exploration?
-\end{itemize}
 
 \end{frame}
 
@@ -135,7 +170,7 @@
    \begin{tiny}
    \setbeamertemplate{bibliography item}[text]
    \bibliographystyle{authordate1}
-   \bibliography{/Users/rtl/Dropbox/STUDIES/ICL_MSc_ML_17_18/HRL_AG/EXTRA/HRL.bib}
+   \bibliography{main.bib}
    \end{tiny}
 \end{frame}
 

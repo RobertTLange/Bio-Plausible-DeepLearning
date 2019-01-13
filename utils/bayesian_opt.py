@@ -33,10 +33,11 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
 
     # Try to merge logs if previous BO opt fct was interrupted
     merge_json_logs(log_fname, temp_fname)
-
+    prev_iters = 0
     if os.path.isfile(log_fname):
+        prev_iters = get_iter_log(log_fname)
         load_logs(optimizer, logs=[log_fname])
-        print("Loaded previously existing Log with {} BO iterations.".format(get_iter_log(log_fname)))
+        print("Loaded previously existing Log with {} BO iterations.".format(prev_iters))
 
     if logging:
         logger = JSONLogger(path=temp_fname)
@@ -71,7 +72,7 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
         time_t = time.time() - tic
 
         if verbose:
-            print(template.format(_ + 1, target,
+            print(template.format(prev_iters + _ + 1, target,
                                   optimizer.max['target'], time_t))
 
     # Finally merge both logs into single log
@@ -107,12 +108,17 @@ def check_next_point(next_point):
 
 def merge_json_logs(fname1, fname2):
     try:
-        read_files = [fname1, fname2]
-        with open("merged_file.json", "wb") as outfile:
-            outfile.write('{}'.format(
-                ''.join([open(f, "rb").read() for f in read_files])))
+        with open(fname1, "a") as outfile:
+            with open(fname2) as infile:
+                while True:
+                    try:
+                        iteration = next(infile)
+                    except StopIteration:
+                        break
+                    iteration = json.loads(iteration)
+                    print(iteration)
+                    outfile.write(json.dumps(iteration) + "\n")
 
-        os.rename("merged_file.json", fname1)
         os.remove(fname2)
         print("Merged JSON logs - Total iterations: {}".format(get_iter_log(fname1)))
         print("Removed temporary log file.")
@@ -130,3 +136,10 @@ def get_iter_log(fname):
             except StopIteration:
                 break
     return counter
+
+
+if __name__ == "__main__":
+    a = "/logs/bo_logs_dnn_mnist.json"
+    b = "/logs/bo_logs_dnn_mnist_session.json"
+
+    merge_json_logs(a, b)

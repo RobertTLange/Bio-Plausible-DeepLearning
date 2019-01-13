@@ -30,10 +30,10 @@
 * [x] Run BO for 10 Epochs and 50 evaluations/BO iterations for all 3 datasets
 * [x] Get best/worst performance, standard dev - plot as bar chart across approaches DNN/CNN/Guergiev
 * [x] Restructure for python 3? +: cleaner folder structure, -: New env setup :(
+* [x] Check what is wrong with reload of BO logs
 
 ## TODO - CODING:
 
-* [ ] Check what is wrong with reload of BO logs
 * [ ] Make weight logging not store whole weights but only stats!
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Optimize the code - run faster time it!

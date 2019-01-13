@@ -75,15 +75,13 @@
 
 %--------------------------------------------------------------------
 
-\begin{abstract}
-Backpropagation provides a biologically implausible solution to the synaptic credit assignment problem in Deep Learning. Computational graphs and the chain rule successfully provide approximate gradients in deep layered structures. But the empirical success does not necessarily imply that the brain is capable of implementing such a procedure. 
-In this report we review different proposed solutions to such problems that render backpropagation biologically implausible. More specifically, we focus on an approach which implements local plasticity rules in a neural network architecture with dendritic compartments \citep{guerguiev2017}.
-Previously it has been argued that such an architecture overcomes multiple points of critique while accomplishing similar strong results. Our robustness checks reveal that such a claim is not justified.
-\end{abstract}
 
 %--------------------------------------------------------------------
 \section{Introduction}
 
+Backpropagation provides a biologically implausible solution to the synaptic credit assignment problem in Deep Learning. While computational graphs and the chain rule successfully provide approximate gradients in deep layered structures, the mere empirical success does not imply that the brain is capable of implementing such a procedure. 
+In this report we review different proposed solutions to such problems that render backpropagation biologically implausible. More specifically, we focus on an approach which implements local plasticity rules in a neural network architecture with dendritic compartments \citep{guerguiev2017}.
+Previously it has been argued that such an architecture overcomes multiple points of critique while accomplishing similar strong results. Our robustness checks reveal that such a claim is not justified.
 Deep Learning (DL) has rightfully been the poster child of Machine Learning success in the 21st century. It has dominated competitions and research across all domains (computer vision, natural language processing, robotics as well as computational neuroscience). 
 
 %--------------------------------------------------------------------
@@ -100,16 +98,16 @@ In a classification task the final output layer $h_L$ represents the output dist
 
 $$\mathcal{L}(h_L) = - \sum_y q(y|x) log p(y|h_L)$$
 
-\subsection*{Backpropagation: A Successful Deep Learning Perspective}
+\subsection*{Backpropagation: A Successful Deep Learning and Critical Neuroscience Perspective}
 
 In order to train the parameters $\{\theta\}_{l=1}^L$ of a network one makes of powerful auto-differentiation tools and stochastic or batch gradient descent methods.
 
 \begin{equation}
-	\frac{\partial \mathcal{L}}{\partial h_l} = \left(\frac{dh_{l+1}}{d h_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l+1}}
+	\frac{\partial \mathcal{L}}{\partial \theta_l} = \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l}}
 \end{equation}
 
 \begin{equation}
-	\frac{\partial \mathcal{L}}{\partial \theta_l} = \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l}}
+	\frac{\partial \mathcal{L}}{\partial h_l} = \left(\frac{dh_{l+1}}{d h_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l+1}}
 \end{equation}
 
 \begin{equation}
@@ -118,9 +116,6 @@ In order to train the parameters $\{\theta\}_{l=1}^L$ of a network one makes of 
 
 In order to compute the gradient with respect to the parameters of a specific layer $l$, one has to first compute a forward pass of the network to obtain predictions $\hat{y} \coloneqq h_L$. Afterwards, one is able to compute a loss-based error signal. 
 
-\subsection*{Backpropagation: A Critical Neuroscience Perspective}
-
-ADD FIGURE WITH KEY POINTS OF CRITIQUE
 
 \subsection*{Synaptic Integration via Compartmental Dendrites}
 
@@ -226,6 +221,20 @@ Questions:
 
 \subsection*{\citet{guerguiev2017} - A Plausible Alternative?}
 
+A Hidden layer is described by a set of $m$ three compartmental neurons:
+
+\begin{align*}
+	\textit{Apical:  } \mathbf{V^{0a}}(t) &= [V_1^{0a}(t), \dots, V_m^{0a}(t)]\\
+	\textit{Basal:  } \mathbf{V^{0b}}(t) &= [V_1^{0b}(t), \dots, V_m^{0b}(t)]\\
+	\textit{Somatic:  }\mathbf{V^{0}}(t) &= [V_1^{0}(t), \dots, V_m^{0}(t)]
+\end{align*}
+
+The dynamics of the somatic membrane potential are given by
+
+$$\tau \frac{dV_i^0(t)}{dt} = -V_i^0(t) + \frac{g_b}{g_l}\left(V_i^{0b}(t) - V_i^0(t)\right) + + \frac{g_a}{g_l}\left(V_i^{0a}(t) - V_i^0(t)\right)$$
+
+The voltages of the dendritic compartments, on the other hand, are given by the weighted sum of incoming spike trains:
+
 \subsection*{\citet{sacramento2018} - Dendritic Microcircuits}
 
 General Content: MLP with simplified dendritic compartments learned in local PE plasticity fashion. No separate phases needed. Errors represent mismatch between pre input from lateral interneurons and top-down feedback. First cortical microcircuit approach. Analytically derive that such a setup/learning rule approximates backprop weight updates and proof basic performance on MNIST.
@@ -310,6 +319,28 @@ Questions:
 
 Bayesian Optimization \rob{Add BO classic reference} is a probabilistic technique commonly used to optimize the parameters of complex functions which are costly to evaluate. Computing cross-validated test accuracies of deep networks is one such costly function. Instead of randomly searching through the hyperparameter space, one approximates the loss function $\mathcal{L}^{k-fold}(\theta|X, y)$ with the help of a Gaussian Process (GP).
 
+\missingfigure{Table of hyperparameters search space for different models}
+
+\fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
+\noindent \textbf{MLP Hyperparameter Search Space:}
+\small{
+\begin{enumerate}
+	\item Layer 1
+\end{enumerate}}}}
+
+\fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
+\noindent \textbf{CNN Hyperparameter Search Space:}
+\small{
+\begin{enumerate}
+	\item Layer 1
+\end{enumerate}}}}
+
+\fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
+\noindent \textbf{\citet{guerguiev2017} Hyperparameter Search Space:}
+\small{
+\begin{enumerate}
+	\item Layer 1
+\end{enumerate}}}}
 %--------------------------------------------------------------------
 \newpage
 \section{Outlook and Conclusion}
