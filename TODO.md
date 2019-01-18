@@ -41,11 +41,16 @@
 * [ ] Run BO pipeline for CNNs - figure out memory usage
 * [ ] Add a BO pipeline for guergiev
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
+* [ ] Figure out a way how to analyse robustness to specific hyperparam
+* [ ] Finalize plots
 
+## TODO - REPORT/PRESENTATION:
 
-
-## TODO - REPORT:
-
+* [ ] Supervision meeting
+    * [x] Backpropagation
+    * [ ] Pyramidal segregation - integration
+    * [ ] Math/model Guergiev
+    * [ ] Get basic model comparison?????
 * [ ] Read papers/Add first notes of papers
     * [x] Lillicrap et al (2016)
     * [ ] Guergiev et al (2017)

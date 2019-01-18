@@ -179,6 +179,18 @@ def to_one_hot(y_train, y_test):
     oh_y_test[np.arange(oh_y_test.shape[0]), y_test] = 1
 
     return oh_y_train, oh_y_test
+
+def prep_data_guergiev(X, y):
+    dims = list(X.shape)
+    dim_flat = np.prod(dims)/X.shape[0]
+    dim_v_flat = np.prod(dims_v)/X_.shape[0]
+
+    X_test = X_test.reshape(X_test.shape[0], int(dim_flat))
+
+    # Transform data into Guergiev transpose format
+    y_train, y_valid = to_one_hot(y_train, y_valid)
+    return
+
 """
 - Modeling specific helpers
     a. Xavier initialization of all layers

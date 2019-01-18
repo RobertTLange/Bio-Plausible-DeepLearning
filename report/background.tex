@@ -92,7 +92,7 @@ In the following section, we will briefly set the ground for our following inves
 
 Arguably, Deep Learning's most simple layered architecture is the Multi-Layer Perceptron (MLP). A MLP composes multiple layers $\{h_l\}_{l=1}^L$ of non-linear and affine transformations:
 
-$$h_l \coloneqq f(h_{l-1}; \theta) = \sigma_l (W_l h_{l-1} + b_l)$$ 
+$$h_l \coloneqq f(h_{l-1}; \theta_l) = \sigma_l (W_l h_{l-1} + b_l)$$ 
 
 In a classification task the final output layer $h_L$ represents the output distribution over the possible labels. In order to train such a composition one has to define a loss function. A standard classification loss function is given by the cross-entropy between the actual labels distribution, $q(y|x)$, and the output distribution of the network, $p(y|h_L)$:
 
@@ -231,7 +231,7 @@ A Hidden layer is described by a set of $m$ three compartmental neurons:
 
 The dynamics of the somatic membrane potential are given by
 
-$$\tau \frac{dV_i^0(t)}{dt} = -V_i^0(t) + \frac{g_b}{g_l}\left(V_i^{0b}(t) - V_i^0(t)\right) + + \frac{g_a}{g_l}\left(V_i^{0a}(t) - V_i^0(t)\right)$$
+$$\tau \frac{dV_i^0(t)}{dt} = -V_i^0(t) + \frac{g_b}{g_l}\left(V_i^{0b}(t) - V_i^0(t)\right) + \frac{g_a}{g_l}\left(V_i^{0a}(t) - V_i^0(t)\right)$$
 
 The voltages of the dendritic compartments, on the other hand, are given by the weighted sum of incoming spike trains:
 
