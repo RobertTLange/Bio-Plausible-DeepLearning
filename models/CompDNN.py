@@ -71,6 +71,8 @@ class Network:
         self.X_valid, self.y_valid = prep_data_guergiev(X_valid, y_valid)
 
         self.num_train = self.X_train.shape[1]
+        self.num_valid = self.X_valid.shape[1]
+
         self.n_in = self.X_train.shape[0]  # input size
         self.n_out = self.n[-1]            # output size
 
@@ -481,7 +483,7 @@ class Network:
                 # increase magnitude of surviving weights
                 self.Y[m] *= 5
 
-    def train(self, f_etas, b_etas, n_epochs):
+    def train(self, f_etas, b_etas, n_epochs, log_freq, verbose, logging):
         '''
         Train the network. Checkpoints will be saved at the end of every epoch if save_simulation is True.
 
@@ -581,34 +583,17 @@ class Network:
             if self.M > 1:
                 self.bp_angles = np.zeros(n_epochs*self.num_train)
 
-        if initial_test and not continuing:
-            # do an initial weight test
-            print("Start of epoch {}.".format(self.current_epoch + 1))
+        # do an initial weight test
+        test_err = self.test_weights(n_test=self.num_valid)
+        self.full_test_errs[0] = test_err
+        self.quick_test_errs[0] = test_err
 
-            # set start time
-            start_time = time.time()
-
-            test_err = self.test_weights(n_test=n_full_test)
-
-            # get end time & elapsed time
-            end_time = time.time()
-            time_elapsed = end_time - start_time
-
-            sys.stdout.write("\x1b[2K\rFE: {0:05.2f}%. T: {1:.3f}s.\n\n".format(test_err, time_elapsed))
-
-            self.full_test_errs[0] = test_err
-            self.quick_test_errs[0] = test_err
-
-            # save full test error
-            # np.save(os.path.join(self.simulation_path, "full_test_errors.npy"), self.full_test_errs)
-            #
-            # with open(os.path.join(self.simulation_path, "full_test_errors.txt"), 'a') as test_err_file:
-            #     line = "%.10f" % test_err
-            #     print(line, file=test_err_file)
-
-        else:
-            # don't do an initial weight test
-            print("Start of epoch {}.\n".format(self.current_epoch + 1))
+        # save full test error
+        # np.save(os.path.join(self.simulation_path, "full_test_errors.npy"), self.full_test_errs)
+        #
+        # with open(os.path.join(self.simulation_path, "full_test_errors.txt"), 'a') as test_err_file:
+        #     line = "%.10f" % test_err
+        #     print(line, file=test_err_file)
 
         # initialize input spike history
         self.x_hist = np.zeros((self.n_in, mem))
@@ -662,10 +647,6 @@ class Network:
                         self.plateau_times_full[m][k*self.num_train + 2*n]     = total_time_to_forward_phase + self.plateau_times_f[m][n]
                         self.plateau_times_full[m][k*self.num_train + 2*n + 1] = total_time_to_target_phase + self.plateau_times_t[m][n]
 
-                # print every 100 examples
-                if (n+1) % 100 == 0:
-                    sys.stdout.write("\x1b[2K\rEpoch {0}, example {1}/{2}.".format(self.current_epoch + 1, n+1, self.num_train))
-                    sys.stdout.flush()
 
                 # get training example data
                 self.x = lambda_max*self.X_train[:, n][:, np.newaxis]
@@ -763,68 +744,58 @@ class Network:
                     fig.canvas.draw()
                     fig.canvas.flush_events()
 
-                if (n+1) % 1000 == 0:
+                if (n+1) % log_freq == 0 and verbose:
                     if n != self.num_train - 1:
                         # we're partway through an epoch; do a quick weight test
-                        test_err = self.test_weights(n_test=n_quick_test)
+                        test_err = self.test_weights(n_test=self.num_valid)
 
-                        sys.stdout.write("\x1b[2K\rEpoch {0}, example {1}/{2}. QE: {3:05.2f}%. ".format(self.current_epoch + 1, n+1, self.num_train, test_err))
+                        template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
+                        template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
+                        # get end time & reset start time
+                        end_time = time.time()
+                        time_elapsed = end_time - start_time
+                        start_time = None
 
-                        self.quick_test_errs[(k+1)*int(self.num_train/1000)] = test_err
+                        test_acc = 1 - test_err/100
+                        print(template.format("Valid", self.current_epoch + 1, n+1,
+                                              self.num_train, test_acc, 1, time_elapsed))
 
+                        train_acc = float(num_correct)/self.num_train
+                        print(template.format("Train", self.current_epoch + 1, n+1,
+                                              self.num_train, train_acc, 1, time_elapsed))
+                        print('-' * 73)
                         # with open(os.path.join(self.simulation_path, "quick_test_errors.txt"), 'a') as test_err_file:
                         #     line = "%.10f" % test_err
                         #     print(line, file=test_err_file)
-                    else:
-                        # we've reached the end of an epoch; do a full weight test
-                        test_err = self.test_weights(n_test=n_full_test)
 
-                        sys.stdout.write("\x1b[2K\rFE: {0:05.2f}%. ".format(test_err))
+                    if record_training_error:
+                        # calculate percent training error for this epoch
 
+                        num_correct = 0
 
-                        # self.full_test_errs[k+1] = test_err
-                        # self.quick_test_errs[(k+1)*int(self.num_train/1000)] = test_err
-                        # with open(os.path.join(self.simulation_path, "full_test_errors.txt"), 'a') as test_err_file:
-                        #     line = "%.10f" % test_err
-                        #     print(line, file=test_err_file)
+                        if record_backprop_angle and not use_backprop:
+                            bp_angles = self.bp_angles[:(k+1)*self.num_train]
+
+                        if record_loss:
+                            losses = self.losses[:(k+1)*self.num_train]
+
+                        if record_training_labels:
+                            training_labels = self.training_labels[:(k+1)*self.num_train]
+
+                        if record_plateau_times:
+                            plateau_times_full = [ self.plateau_times_full[m][:(k+1)*2*self.num_train] for m in range(self.M) ]
 
                         if record_training_error:
-                            # calculate percent training error for this epoch
-                            err_rate = (1.0 - float(num_correct)/self.num_train)*100.0
-                            self.training_errors[k] = err_rate
+                            training_errors = self.training_errors[:k+1]
 
-                            print("TE: {0:05.2f}%. ".format(err_rate), end="")
+                        if record_eigvals:
+                            max_jacobian_eigvals   = self.max_jacobian_eigvals[:(k+1)*self.num_train]
+                            max_weight_eigvals     = self.max_weight_eigvals[:(k+1)*self.num_train+1]
+                            if record_matrices:
+                                jacobian_prod_matrices = self.jacobian_prod_matrices[:(k+1)*self.num_train]
+                                weight_prod_matrices   = self.weight_prod_matrices[:(k+1)*self.num_train+1]
 
-                            num_correct = 0
-
-                            quick_test_errs = self.quick_test_errs[:(k+1)*int(self.num_train/1000)+1]
-                            full_test_errs  = self.full_test_errs[:k+2]
-
-                            if record_backprop_angle and not use_backprop:
-                                bp_angles = self.bp_angles[:(k+1)*self.num_train]
-
-                            if record_loss:
-                                losses = self.losses[:(k+1)*self.num_train]
-
-                            if record_training_labels:
-                                training_labels = self.training_labels[:(k+1)*self.num_train]
-
-                            if record_plateau_times:
-                                plateau_times_full = [ self.plateau_times_full[m][:(k+1)*2*self.num_train] for m in range(self.M) ]
-
-                            if record_training_error:
-                                training_errors = self.training_errors[:k+1]
-
-                            if record_eigvals:
-                                max_jacobian_eigvals   = self.max_jacobian_eigvals[:(k+1)*self.num_train]
-                                max_weight_eigvals     = self.max_weight_eigvals[:(k+1)*self.num_train+1]
-                                if record_matrices:
-                                    jacobian_prod_matrices = self.jacobian_prod_matrices[:(k+1)*self.num_train]
-                                    weight_prod_matrices   = self.weight_prod_matrices[:(k+1)*self.num_train+1]
-
-                            # save quick test error
-                            np.save(os.path.join(self.simulation_path, "quick_test_errors.npy"), quick_test_errs)
-
+                        if logging:
                             if n == self.num_train - 1:
                                 # save test error
                                 np.save(os.path.join(self.simulation_path, "full_test_errors.npy"), full_test_errs)
@@ -858,20 +829,12 @@ class Network:
                                     np.save(os.path.join(self.simulation_path, "jacobian_prod_matrices.npy"), jacobian_prod_matrices)
                                     np.save(os.path.join(self.simulation_path, "weight_prod_matrices.npy"), weight_prod_matrices)
 
-                            print("done. ", end="")
-
                     if record_eigvals:
                         # print the minimum max eigenvalue of (I - J_g*J_f).T * (I - J_g*J_f) from the last 1000 examples
                         print("Min max Jacobian eigval: {:.4f}. ".format(np.amin(self.max_jacobian_eigvals[max(0, k*self.num_train + n - 999):k*self.num_train + n + 1])), end="")
 
                         # print the number of max eigenvalues of (I - J_g*J_f).T * (I - J_g*J_f) from the last 1000 examples that were smaller than 1
                         print("# max eigvals < 1: {}. ".format(np.sum(self.max_jacobian_eigvals[max(0, k*self.num_train + n - 999):k*self.num_train + n + 1] < 1)), end="")
-
-                    # get end time & reset start time
-                    end_time = time.time()
-                    time_elapsed = end_time - start_time
-                    print("T: {0:.3f}s.\n".format(time_elapsed))
-                    start_time = None
 
             # update latest epoch counter
             self.current_epoch += 1
@@ -937,11 +900,6 @@ class Network:
             if sel_num == target_num:
                 num_correct += 1
 
-            # print every 100 testing examples
-            if (n + 1) % 100  == 0:
-                sys.stdout.write("\x1b[2K\rTesting example {0}/{1}. E: {2:05.2f}%.".format(n+1, n_test, (1.0 - float(num_correct)/(n+1))*100.0))
-                sys.stdout.flush()
-
         # calculate percent error
         err_rate = (1.0 - float(num_correct)/n_test)*100.0
 
@@ -959,10 +917,6 @@ class Network:
         # clear all layer variables
         for m in range(self.M):
             self.l[m].clear_vars()
-
-        if n_test > 100:
-            sys.stdout.write("\x1b[2K\r")
-            sys.stdout.flush()
 
         return err_rate
 
@@ -1008,9 +962,6 @@ class Network:
 
         print("--------------------------------")
 
-# ---------------------------------------------------------------
-"""                     Layer classes                         """
-# ---------------------------------------------------------------
 
 class Layer:
     def __init__(self, net, m):
@@ -1022,8 +973,8 @@ class Layer:
             m (int)       : The layer number, eg. m = 0 for the first layer.
         '''
 
-        self.net  = net
-        self.m    = m
+        self.net = net
+        self.m = m
         self.size = self.net.n[m]
 
     def spike(self):
@@ -1031,7 +982,10 @@ class Layer:
         Generate Poisson spikes based on the firing rates of the neurons.
         '''
 
-        self.S_hist = np.concatenate([self.S_hist[:, 1:], np.random.poisson(self.lambda_C)], axis=-1)
+        self.S_hist = np.concatenate([self.S_hist[:, 1:],
+                                      np.random.poisson(self.lambda_C)],
+                                     axis=-1)
+
 
 class hiddenLayer(Layer):
     def __init__(self, net, m, f_input_size, b_input_size):

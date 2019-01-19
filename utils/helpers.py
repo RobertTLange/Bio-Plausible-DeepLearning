@@ -217,12 +217,10 @@ def get_test_error(model_type, device, model, X_test, y_test):
 def report(verbose, loss, batch_sizes, y, y_proba, batch_cur,
            batch_total, epoch, time, training=True):
     template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
-
+    template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
     # loss = np.average(losses, weights=batch_sizes)
     y_pred = np.argmax(y_proba, axis=1)
     acc = accuracy_score(y, y_pred)
-
-    template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
 
     if verbose:
         print(template.format(
