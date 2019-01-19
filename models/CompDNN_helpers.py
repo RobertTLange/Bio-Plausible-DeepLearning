@@ -1,135 +1,79 @@
+import _pickle as pickle
+import numpy as np
 
-# ---------------------------------------------------------------
-"""                     Helper functions                      """
-# ---------------------------------------------------------------
+class CompDNN_Logger():
+    def __init__(self, log_dir, log_fname):
+        self.save_fname = log_dir + log_fname
+        # Init empty lists to store results in
+        self.iterations = []
+        self.train_losses = []
+        self.val_losses = []
+        self.train_accs = []
+        self.val_accs = []
 
-def load_simulation(latest_epoch, folder_name, simulations_folder=default_simulations_folder):
-    '''
-        Re-load a previously saved simulation, recreating the network. This function can
-        be used to continue an interrupted simulation.
+    def update(self, its, train_loss, val_loss,
+               train_acc, val_acc):
+        self.iterations.append(its)
+        self.train_losses.append(train_loss)
+        self.val_losses.append(val_loss)
+        self.train_accs.append(train_acc)
+        self.val_accs.append(val_acc)
+        self.dump_data()
 
-        Arguments:
-            latest_epoch (int)          : The latest epoch of this simulation that has been completed.
-            folder_name (string)        : Name of the subfolder in the parent folder that contains data from this simulation.
-            simulations_folder (string) : Name of the parent folder that contains the folder for this simulation.
+    def dump_data(self):
+        with open(self.save_fname, 'wb') as fp:
+            pickle.dump(self.iterations, fp)
+            pickle.dump(self.train_lossses, fp)
+            pickle.dump(self.val_losses, fp)
+            pickle.dump(self.train_accs, fp)
+            pickle.dump(self.val_accs, fp)
+        return
 
-        Returns:
-            net (Network)             : Network object with re-loaded weights.
-            f_etas (tuple)            : Learning rates for each layer's feedforward weights, eg. (0.21, 0.21).
-            b_etas (tuple)            : Learning rates for each layer's feedback weights.
-            n_training_examples (int) : Number of training examples per epoch.
-    '''
 
-    simulation_path = os.path.join(simulations_folder, folder_name)
+class Weight_CompDNN_Logger():
+    def __init__(self, log_dir, wlog_fname, layer_ids):
+        self.save_fname = log_dir + wlog_fname
+        # Init empty lists to store results in
+        self.iterations = []
+        self.weights = None
+        self.weight_gradients = None
+        self.fr_n_weights = {key: [] for key in layer_ids}
+        self.fr_n_weights_ch = {key: [] for key in layer_ids}
+        self.fr_n_weights_grad_ch = {key: [] for key in layer_ids}
 
-    print("Loading simulation from \"{}\" @ epoch {}.\n".format(simulation_path, latest_epoch))
+    def update(self, its, weights, weight_gradients):
+        self.iterations.append(its)
 
-    if not os.path.exists(simulation_path):
-        print("Error: Could not find simulation folder – path does not exist.")
-        return None
+        if self.weights is not None:
+            for l_id in range(len(weights)):
+                self.compute_stats(l_id)
 
-    # load parameters
-    with open(os.path.join(simulation_path, 'simulation.json'), 'r') as simulation_file:
-        params = json.loads(simulation_file.read())
+        self.weights = weights
+        self.weight_gradients = weight_gradients
+        self.dump_data()
 
-    # set global parameters
-    global nonspiking_mode
-    global n_full_test, n_quick_test
-    global use_rand_phase_lengths, use_rand_plateau_times, use_conductances, use_broadcast, use_spiking_feedback, use_spiking_feedforward
-    global use_symmetric_weights, noisy_symmetric_weights
-    global use_sparse_feedback, update_feedback_weights, use_backprop, use_apical_conductance, use_weight_optimization, use_feedback_bias, initial_test
-    global record_backprop_angle, record_loss, record_training_error, record_training_labels, record_phase_times, record_plateau_times, record_voltages, record_eigvals, record_matrices, plot_eigvals
-    global dt, mem, integration_time, integration_time_test
-    global l_f_phase, l_t_phase, l_f_phase_test
-    global lambda_max
-    global tau_s, tau_L
-    global g_B, g_A, g_L, g_D
-    global k_B, k_D, k_I
-    global P_hidden, P_final
-    global kappas
+    def compute_stats(self, l_id, temp_param, temp_grad_param):
 
-    nonspiking_mode         = params['nonspiking_mode']
-    n_full_test             = params['n_full_test']
-    n_quick_test            = params['n_quick_test']
-    use_rand_phase_lengths  = params['use_rand_phase_lengths']
-    use_rand_plateau_times  = params['use_rand_plateau_times']
-    use_conductances        = params['use_conductances']
-    use_broadcast           = params['use_broadcast']
-    use_spiking_feedback    = params['use_spiking_feedback']
-    use_spiking_feedforward = params['use_spiking_feedforward']
-    use_symmetric_weights   = params['use_symmetric_weights']
-    use_sparse_feedback     = params['use_sparse_feedback']
-    update_feedback_weights = params['update_feedback_weights']
-    use_backprop            = params['use_backprop']
-    use_apical_conductance  = params['use_apical_conductance']
-    use_weight_optimization = params['use_weight_optimization']
-    use_feedback_bias       = params['use_feedback_bias']
-    initial_test            = params['initial_test']
-    record_backprop_angle   = params['record_backprop_angle']
-    record_loss             = params['record_loss']
-    record_training_error   = params['record_training_error']
-    record_training_labels  = params['record_training_labels']
-    record_phase_times      = params['record_phase_times']
-    record_plateau_times    = params['record_plateau_times']
-    record_voltages         = params['record_voltages']
-    record_eigvals          = params['record_eigvals']
-    record_matrices         = params['record_matrices']
-    plot_eigvals            = params['plot_eigvals']
-    dt                      = params['dt']
-    mem                     = params['mem']
-    integration_time        = params['integration_time']
-    integration_time_test   = params['integration_time_test']
-    l_f_phase               = params['l_f_phase']
-    l_t_phase               = params['l_t_phase']
-    l_f_phase_test          = params['l_f_phase_test']
-    lambda_max              = params['lambda_max']
-    tau_s                   = params['tau_s']
-    tau_L                   = params['tau_L']
-    g_B                     = params['g_B']
-    g_A                     = params['g_A']
-    g_L                     = params['g_L']
-    g_D                     = params['g_D']
-    k_B                     = params['k_B']
-    k_D                     = params['k_D']
-    k_I                     = params['k_I']
-    P_hidden                = params['P_hidden']
-    P_final                 = params['P_final']
+        temp_param_old = self.weights[l_id]
+        temp_grad_param_old = self.weight_gradients[l_id]
 
-    n                       = params['n']
-    f_etas                  = params['f_etas']
-    b_etas                  = params['b_etas']
-    n_training_examples     = params['n_training_examples']
+        fr_n_param = np.linalg.norm(temp_param)
+        fr_n_ch = np.linalg.norm(temp_param - temp_param_old)/np.linalg.norm(temp_param_old)
+        fr_n_grad_ch = np.linalg.norm(temp_grad_param - temp_grad_param_old)/np.linalg.norm(temp_grad_param_old)
 
-    if nonspiking_mode:
-        print("* ------------ Running in non-spiking mode. ------------ *")
+        self.fr_n_weights[l_id].append(fr_n_param)
+        self.fr_n_weights_ch[l_id].append(fr_n_ch)
+        self.fr_n_weights_grad_ch[l_id].append(fr_n_grad_ch)
 
-        # set parameters for non-spiking mode
-        use_rand_phase_lengths  = False
-        use_rand_plateau_times  = False
-        use_conductances        = False
-        use_spiking_feedforward = False
-        use_spiking_feedback    = False
-        record_phase_times      = False
-        record_plateau_times    = False
-        record_voltages         = False
+    def dump_data(self):
+        with open(self.save_fname, 'wb') as fp:
+            pickle.dump(self.iterations, fp)
+            pickle.dump(self.fr_n_weights, fp)
+            pickle.dump(self.fr_n_weights_ch, fp)
+            pickle.dump(self.fr_n_weights_grad_ch, fp)
+        return
 
-        l_f_phase             = 2
-        l_t_phase             = 2
-        l_f_phase_test        = 2
-        integration_time      = 1
-        integration_time_test = 1
-        mem                   = 1
 
-    # create network and load weights
-    net = Network(n=n)
-    net.load_weights(simulation_path, prefix="epoch_{}_".format(latest_epoch))
-    net.current_epoch = latest_epoch + 1
-
-    kappas = np.flipud(get_kappas(mem))[:, np.newaxis] # re-initialize kappas array
-
-    return net, f_etas, b_etas, n_training_examples
-
-# --- Misc. --- #
 
 def plot_weights(W_list, save_dir=None, suffix=None, normalize=False):
     '''

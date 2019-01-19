@@ -20,6 +20,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from utils.helpers import to_one_hot, prep_data_guergiev
 from models.CompDNN_hyperparameters import *
+from models.CompDNN_helpers import CompDNN_Logger, Weight_CompDNN_Logger
 
 
 def sigma(x):
@@ -133,10 +134,10 @@ class Network:
                             self.c[m-1] = np.random.uniform(-1, 1, size=(N, 1))
                 else:
                     if use_weight_optimization:
-                         self.Y[m-1] = W_avg + 3.465*W_sd*np.random.uniform(-1, 1, size=(N, self.n[m]))
+                        self.Y[m-1] = W_avg + 3.465*W_sd*np.random.uniform(-1, 1, size=(N, self.n[m]))
 
-                         if use_feedback_bias:
-                             self.c[m-1] = b_avg + 3.465*b_sd*np.random.uniform(-1, 1, size=(N, 1))
+                        if use_feedback_bias:
+                            self.c[m-1] = b_avg + 3.465*b_sd*np.random.uniform(-1, 1, size=(N, 1))
                     else:
                         self.Y[m-1] = np.random.uniform(-1, 1, size=(N, self.n[m]))
 
@@ -374,15 +375,6 @@ class Network:
             training (bool)    : Whether the network is in training (True) or testing (False) mode.
         '''
 
-        if record_voltages and training:
-            # initialize voltage arrays
-            self.A_hists = [np.zeros((l_f_phase, self.l[m].size))
-                            for m in range(self.M-1)]
-            self.B_hists = [np.zeros((l_f_phase, self.l[m].size))
-                            for m in range(self.M)]
-            self.C_hists = [np.zeros((l_f_phase, self.l[m].size))
-                            for m in range(self.M)]
-
         for time in range(l_f_phase):
             # update input spike history
             self.x_hist = np.concatenate([self.x_hist[:, 1:], np.random.poisson(x)], axis=-1)
@@ -452,8 +444,7 @@ class Network:
             # update weights
             self.l[m].update_W()
 
-        if record_loss:
-            self.loss = ((self.l[-1].average_lambda_C_t - lambda_max*sigma(self.l[-1].average_C_f)) ** 2).mean()
+        self.loss = ((self.l[-1].average_lambda_C_t - lambda_max*sigma(self.l[-1].average_C_f)) ** 2).mean()
 
         for m in range(self.M-1, -1, -1):
             # reset averages
@@ -504,6 +495,10 @@ class Network:
                                           determines the state of the simulation.
         '''
 
+        if logging:
+            logger = CompDNN_Logger("logs", "/guergiev_temp.pkl")
+            # wlogger = Weight_CompDNN_Logger("logs/guergiev_weights_temp.pkl")
+
         if b_etas is None and update_feedback_weights:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
 
@@ -528,89 +523,15 @@ class Network:
         self.b_etas = b_etas
 
 
-        self.full_test_errs = np.zeros(n_epochs + 1)
-        self.quick_test_errs = np.zeros(n_epochs*int(self.num_train/1000.0) + 1)
+        self.losses = np.zeros(n_epochs*self.num_train)
 
-        if record_loss:
-            self.losses = np.zeros(n_epochs*self.num_train)
-
-        if record_training_error:
-            self.training_errors = np.zeros(n_epochs)
-
-        if record_plateau_times:
-            self.plateau_times_full = [np.zeros((n_epochs*2*self.num_train, self.n[m])) for m in range(self.M)]
-
-        if record_phase_times:
-            self.phase_times = np.zeros(n_epochs*self.num_train*2)
-
-            self.phase_times[0] = l_f_phases[0]
-            for i in range(1, 2*n_epochs*self.num_train):
-                if i % 2 == 0:
-                    self.phase_times[i] = self.phase_times[i-1] + l_f_phases[int(i/2)]
-                else:
-                    self.phase_times[i] = self.phase_times[i-1] + l_t_phases[int((i-1)/2)]
-
-        if record_training_labels:
-            self.training_labels = np.zeros(n_epochs*self.num_train)
-
-        if record_eigvals:
-            # initialize arrays for Jacobian testing
-            self.max_jacobian_eigvals = np.zeros(n_epochs*self.num_train)
-            if record_matrices:
-                self.jacobian_prod_matrices = np.zeros((n_epochs*self.num_train, self.n[-1], self.n[-1]))
-
-            self.max_weight_eigvals = np.zeros(n_epochs*self.num_train + 1)
-            if record_matrices:
-                self.weight_prod_matrices = np.zeros((n_epochs*self.num_train + 1, self.n[-1], self.n[-1]))
-
-            # create identity matrix
-            I = np.eye(self.n[-1])
-
-            # get max eigenvalues for weights
-            U = np.dot(self.W[-1], self.Y[-2])
-            p = np.dot((I - U).T, I - U)
-
-            if record_matrices:
-                self.weight_prod_matrices[0] = U
-            self.max_weight_eigvals[0] = np.amax(np.real(np.linalg.eigvals(p)))
-
-            # initialize lists for storing last 100 Jacobians
-            self.J_betas = []
-            self.J_gammas = []
-
-        if record_backprop_angle and not use_backprop:
-            # initialize backprop angles recording array
-            if self.M > 1:
-                self.bp_angles = np.zeros(n_epochs*self.num_train)
-
-        # do an initial weight test
-        test_err = self.test_weights(n_test=self.num_valid)
-        self.full_test_errs[0] = test_err
-        self.quick_test_errs[0] = test_err
-
-        # save full test error
-        # np.save(os.path.join(self.simulation_path, "full_test_errors.npy"), self.full_test_errs)
-        #
-        # with open(os.path.join(self.simulation_path, "full_test_errors.txt"), 'a') as test_err_file:
-        #     line = "%.10f" % test_err
-        #     print(line, file=test_err_file)
-
+        self.plateau_times_full = [np.zeros((n_epochs*2*self.num_train, self.n[m])) for m in range(self.M)]
         # initialize input spike history
         self.x_hist = np.zeros((self.n_in, mem))
 
         # start time used for timing how long each 1000 examples take
         start_time = None
 
-        if record_eigvals and plot_eigvals:
-            plt.close("all")
-            fig = plt.figure(figsize=(13, 8))
-            ax1 = fig.add_subplot(311)
-            ax2 = fig.add_subplot(321)
-            ax3 = fig.add_subplot(312)
-            plt.show(block=False)
-
-        if record_training_error:
-            num_correct = 0
 
         for k in range(n_epochs):
             # shuffle the training data
@@ -639,208 +560,48 @@ class Network:
 
                 l_phases_tot = l_f_phase + l_t_phase
 
-                # get plateau potential times from the beginning of the simulation
-                if record_plateau_times:
-                    total_time_to_forward_phase = np.sum(l_f_phases[:k*self.num_train + n]) + np.sum(l_t_phases[:k*self.num_train + n])
-                    total_time_to_target_phase  = np.sum(l_f_phases[:k*self.num_train + n + 1]) + np.sum(l_t_phases[:k*self.num_train + n])
-                    for m in range(self.M):
-                        self.plateau_times_full[m][k*self.num_train + 2*n]     = total_time_to_forward_phase + self.plateau_times_f[m][n]
-                        self.plateau_times_full[m][k*self.num_train + 2*n + 1] = total_time_to_target_phase + self.plateau_times_t[m][n]
-
-
                 # get training example data
                 self.x = lambda_max*self.X_train[:, n][:, np.newaxis]
                 self.t = self.y_train[:, n][:, np.newaxis]
 
-                if record_voltages:
-                    # initialize voltage arrays
-                    self.A_hists = [ np.zeros((l_f_phase, self.l[m].size)) for m in range(self.M-1)]
-                    self.B_hists = [ np.zeros((l_f_phase, self.l[m].size)) for m in range(self.M)]
-                    self.C_hists = [ np.zeros((l_f_phase, self.l[m].size)) for m in range(self.M)]
-
                 # do forward & target phases
                 self.f_phase(self.x, None, n, training=True)
+                self.t_phase(self.x,
+                             self.t.repeat(self.n_neurons_per_category,
+                                           axis=0), n)
 
-                if record_training_error:
-                    sel_num = np.argmax(np.mean(self.l[-1].average_C_f.reshape(-1, self.n_neurons_per_category), axis=-1))
 
-                    # get the target number from testing example data
-                    target_num = np.dot(np.arange(10), self.t)
-
-                    # increment correct classification counter if they match
-                    if sel_num == target_num:
-                        num_correct += 1
-
-                self.t_phase(self.x, self.t.repeat(self.n_neurons_per_category, axis=0), n)
-
-                if record_loss:
-                    self.losses[k*self.num_train + n] = self.loss
-
-                if record_training_labels:
-                    self.training_labels[k*self.num_train + n] = np.dot(np.arange(10), self.t)
-
-                if record_eigvals:
-                    # get max eigenvalues for jacobians
-                    # U = np.dot(np.mean(np.array(self.J_betas), axis=0), np.mean(np.array(self.J_gammas), axis=0)) # product of mean of last 100 Jacobians
-                    U = np.mean(np.array([ np.dot(self.J_betas[i], self.J_gammas[i]) for i in range(len(self.J_betas)) ]), axis=0) # mean of product of last 100 Jacobians
-
-                    p = np.dot((I - U).T, I - U)
-                    if record_matrices:
-                        self.jacobian_prod_matrices[k*self.num_train + n] = U
-                    self.max_jacobian_eigvals[k*self.num_train + n] = np.amax(np.linalg.eigvals(p))
-
-                    # get max eigenvalues for weights
-                    U = np.dot(k_D*self.W[-1], self.Y[-2])
-                    p = np.dot((I - U).T, I - U)
-                    if not continuing:
-                        if record_matrices:
-                            self.weight_prod_matrices[k*self.num_train + n + 1] = U
-                        self.max_weight_eigvals[k*self.num_train + n + 1] = np.amax(np.linalg.eigvals(p))
-                    else:
-                        if record_matrices:
-                            self.weight_prod_matrices[k*self.num_train + n] = U
-                        self.max_weight_eigvals[k*self.num_train + n] = np.amax(np.linalg.eigvals(p))
-
-                    if plot_eigvals and k == 0 and n == 0:
-                        # draw initial plots
-                        if record_matrices:
-                            A = self.jacobian_prod_matrices[0]
-                            im_plot = ax1.imshow(A, interpolation='nearest', vmin=0, vmax=1)
-                            fig.colorbar(im_plot, ax=ax1)
-                        if record_loss:
-                            loss_plot, = ax2.plot(np.arange(1), self.losses[0])
-                        max_jacobian_plot, = ax3.plot(np.arange(1), self.max_jacobian_eigvals[0], '.')
-                        fig.canvas.draw()
-                        fig.canvas.flush_events()
-
-                if record_backprop_angle and not use_backprop:
-                    # get backprop angle
-                    if self.M > 1:
-                        bp_angle = np.arccos(np.sum(self.l[0].delta_b_bp * self.l[0].delta_b_full) / (np.linalg.norm(self.l[0].delta_b_bp)*np.linalg.norm(self.l[0].delta_b_full.T)))*180.0/np.pi
-                        self.bp_angles[k*self.num_train + n] = bp_angle
-
-                if plot_eigvals and record_eigvals and (n+1) % 100 == 0:
-                    max_inds = np.argsort(self.max_jacobian_eigvals[k*self.num_train + n -99:k*self.num_train + n + 1])
-                    max_ind = np.argmax(self.max_jacobian_eigvals[k*self.num_train + n-99:k*self.num_train + n + 1])
-                    min_ind = np.argmin(self.max_jacobian_eigvals[k*self.num_train + n-99:k*self.num_train + n + 1])
-                    n_small = np.sum(self.max_jacobian_eigvals[k*self.num_train + n-99:k*self.num_train + n + 1] < 1)
-
-                    # update plots
-                    if record_matrices:
-                        A = np.mean(np.array([self.jacobian_prod_matrices[k*self.num_train + n-99:k*self.num_train + n + 1][i] for i in max_inds][:-10]), axis=0)
-                        im_plot.set_data(A)
-
-                    if record_loss:
-                        loss_plot.set_xdata(np.arange(k*self.num_train + n))
-                        loss_plot.set_ydata(self.losses[:k*self.num_train + n])
-                        ax2.set_xlim(0, k*self.num_train + n)
-                        ax2.set_ylim(np.amin(self.losses[:k*self.num_train + n]) - 1e-6, np.amax(self.losses[:k*self.num_train + n]) + 1e-6)
-
-                    max_jacobian_plot.set_xdata(np.arange(k*self.num_train + n))
-                    max_jacobian_plot.set_ydata(self.max_jacobian_eigvals[:k*self.num_train + n])
-                    ax3.set_xlim(0, k*self.num_train + n)
-                    ax3.set_ylim(np.amin(self.max_jacobian_eigvals[:k*self.num_train + n]) - 1e-6, np.amax(self.max_jacobian_eigvals[:k*self.num_train + n]) + 1e-6)
-
-                    fig.canvas.draw()
-                    fig.canvas.flush_events()
+                self.losses[k*self.num_train + n] = self.loss
 
                 if (n+1) % log_freq == 0 and verbose:
+                    template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
+                    template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
                     if n != self.num_train - 1:
                         # we're partway through an epoch; do a quick weight test
-                        test_err = self.test_weights(n_test=self.num_valid)
-
-                        template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
-                        template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
                         # get end time & reset start time
                         end_time = time.time()
                         time_elapsed = end_time - start_time
                         start_time = None
 
-                        test_acc = 1 - test_err/100
-                        print(template.format("Valid", self.current_epoch + 1, n+1,
-                                              self.num_train, test_acc, 1, time_elapsed))
-
-                        train_acc = float(num_correct)/self.num_train
+                        test_acc, test_loss = self.test_weights(test_train=False)
+                        train_acc, train_loss = self.test_weights(test_train=True)
                         print(template.format("Train", self.current_epoch + 1, n+1,
-                                              self.num_train, train_acc, 1, time_elapsed))
+                                              self.num_train, train_acc, train_loss, time_elapsed))
+                        print(template.format("Valid", self.current_epoch + 1, n+1,
+                                              self.num_train, test_acc, test_loss, time_elapsed))
+
                         print('-' * 73)
-                        # with open(os.path.join(self.simulation_path, "quick_test_errors.txt"), 'a') as test_err_file:
-                        #     line = "%.10f" % test_err
-                        #     print(line, file=test_err_file)
-
-                    if record_training_error:
-                        # calculate percent training error for this epoch
-
-                        num_correct = 0
-
-                        if record_backprop_angle and not use_backprop:
-                            bp_angles = self.bp_angles[:(k+1)*self.num_train]
-
-                        if record_loss:
-                            losses = self.losses[:(k+1)*self.num_train]
-
-                        if record_training_labels:
-                            training_labels = self.training_labels[:(k+1)*self.num_train]
-
-                        if record_plateau_times:
-                            plateau_times_full = [ self.plateau_times_full[m][:(k+1)*2*self.num_train] for m in range(self.M) ]
-
-                        if record_training_error:
-                            training_errors = self.training_errors[:k+1]
-
-                        if record_eigvals:
-                            max_jacobian_eigvals   = self.max_jacobian_eigvals[:(k+1)*self.num_train]
-                            max_weight_eigvals     = self.max_weight_eigvals[:(k+1)*self.num_train+1]
-                            if record_matrices:
-                                jacobian_prod_matrices = self.jacobian_prod_matrices[:(k+1)*self.num_train]
-                                weight_prod_matrices   = self.weight_prod_matrices[:(k+1)*self.num_train+1]
 
                         if logging:
-                            if n == self.num_train - 1:
-                                # save test error
-                                np.save(os.path.join(self.simulation_path, "full_test_errors.npy"), full_test_errs)
-
-                                # save weights
-                                self.save_weights(self.simulation_path, prefix="epoch_{}_".format(self.current_epoch + 1))
-
-                            if record_backprop_angle and not use_backprop:
-                                if self.M > 1:
-                                    # save backprop angles
-                                    np.save(os.path.join(self.simulation_path, "bp_angles.npy"), bp_angles)
-
-                            if record_loss:
-                                np.save(os.path.join(self.simulation_path, "final_layer_loss.npy"), losses)
-
-                            if record_training_labels:
-                                np.save(os.path.join(self.simulation_path, "training_labels.npy"), training_labels)
-
-                            if record_plateau_times:
-                                for m in range(self.M):
-                                    np.save(os.path.join(self.simulation_path, "plateau_times_{}.npy".format(m)), self.plateau_times_full[m])
-
-                            if record_training_error:
-                                np.save(os.path.join(self.simulation_path, "training_errors.npy"), training_errors)
-
-                            if record_eigvals:
-                                # save eigenvalues
-                                np.save(os.path.join(self.simulation_path, "max_jacobian_eigvals.npy"), max_jacobian_eigvals)
-                                np.save(os.path.join(self.simulation_path, "max_weight_eigvals.npy"), max_weight_eigvals)
-                                if record_matrices:
-                                    np.save(os.path.join(self.simulation_path, "jacobian_prod_matrices.npy"), jacobian_prod_matrices)
-                                    np.save(os.path.join(self.simulation_path, "weight_prod_matrices.npy"), weight_prod_matrices)
-
-                    if record_eigvals:
-                        # print the minimum max eigenvalue of (I - J_g*J_f).T * (I - J_g*J_f) from the last 1000 examples
-                        print("Min max Jacobian eigval: {:.4f}. ".format(np.amin(self.max_jacobian_eigvals[max(0, k*self.num_train + n - 999):k*self.num_train + n + 1])), end="")
-
-                        # print the number of max eigenvalues of (I - J_g*J_f).T * (I - J_g*J_f) from the last 1000 examples that were smaller than 1
-                        print("# max eigvals < 1: {}. ".format(np.sum(self.max_jacobian_eigvals[max(0, k*self.num_train + n - 999):k*self.num_train + n + 1] < 1)), end="")
+                            logger.update(self.current_epoch*self.num_train + n,
+                                          train_loss, test_loss,
+                                          train_acc, test_acc)
 
             # update latest epoch counter
             self.current_epoch += 1
 
 
-    def test_weights(self, n_test=n_quick_test):
+    def test_weights(self, test_train):
         '''
         Test the network's current weights on the test set. The network's layers are copied
         and restored to their previous state after testing.
@@ -865,11 +626,17 @@ class Network:
 
         old_x_hist = self.x_hist
 
-        # initialize count of correct classifications
+        # initialize count of correct classifications/loss (cross-entropy)
         num_correct = 0
+        cross_ent_loss = 0
 
         # shuffle testing data
-        self.X_valid, self.y_valid = shuffle_arrays(self.X_valid, self.y_valid)
+        if test_train:
+            X_temp, y_temp = shuffle_arrays(self.X_train, self.y_train)
+            n_test = self.num_train
+        else:
+            X_temp, y_temp = shuffle_arrays(self.X_valid, self.y_valid)
+            n_test = self.num_valid
 
         digits = np.arange(10)
 
@@ -886,11 +653,14 @@ class Network:
             self.x_hist *= 0
 
             # get testing example data
-            self.x = lambda_max*self.X_valid[:, n][:, np.newaxis]
-            self.t = self.y_valid[:, n][:, np.newaxis]
+            self.x = lambda_max*X_temp[:, n][:, np.newaxis]
+            self.t = y_temp[:, n][:, np.newaxis]
 
             # do a forward phase & get the unit with maximum average somatic potential
-            self.f_phase(self.x, self.t.repeat(self.n_neurons_per_category, axis=0), None, training=False)
+            self.f_phase(self.x,
+                         self.t.repeat(self.n_neurons_per_category, axis=0),
+                         None, training=False)
+
             sel_num = np.argmax(np.mean(self.l[-1].average_C_f.reshape(-1, self.n_neurons_per_category), axis=-1))
 
             # get the target number from testing example data
@@ -899,6 +669,9 @@ class Network:
             # increment correct classification counter if they match
             if sel_num == target_num:
                 num_correct += 1
+            else:
+                prob_corr_num = np.mean(self.l[-1].average_C_f.reshape(-1, self.n_neurons_per_category), axis=-1)[int(target_num)]
+                cross_ent_loss += np.log(prob_corr_num)
 
         # calculate percent error
         err_rate = (1.0 - float(num_correct)/n_test)*100.0
@@ -918,7 +691,7 @@ class Network:
         for m in range(self.M):
             self.l[m].clear_vars()
 
-        return err_rate
+        return 1-err_rate/100, cross_ent_loss
 
     def save_weights(self, path, prefix=""):
         '''
@@ -1381,8 +1154,8 @@ class finalLayer(Layer):
                 self.I = g_E*(E_E - self.C) + g_I*(E_I - self.C)
             else:
                 self.k_D2 = g_D/(g_L + g_D + g_E + g_I)
-                self.k_E  = g_E/(g_L + g_D + g_E + g_I)
-                self.k_I  = g_I/(g_L + g_D + g_E + g_I)
+                self.k_E = g_E/(g_L + g_D + g_E + g_I)
+                self.k_I = g_I/(g_L + g_D + g_E + g_I)
 
     def update_C(self, phase):
         '''

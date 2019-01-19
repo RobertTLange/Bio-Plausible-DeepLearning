@@ -10,7 +10,7 @@ from bayes_opt.observer import JSONLogger
 
 # Import Network Architectures
 from models.DNN import eval_dnn
-from models.CNN import eval_cnn, update_tensor_dim
+from models.CNN import eval_cnn
 
 from utils.helpers import update_tensor_dim
 # Dont print depreciation warning
@@ -119,7 +119,7 @@ def merge_json_logs(fname1, fname2):
                     outfile.write(json.dumps(iteration) + "\n")
 
         os.remove(fname2)
-        print("Merged JSON logs - Total iterations: {}".format(get_iter_log(fname1)))
+        print("Merged JSONs - Total its: {}".format(get_iter_log(fname1)))
         print("Removed temporary log file.")
     except:
         return

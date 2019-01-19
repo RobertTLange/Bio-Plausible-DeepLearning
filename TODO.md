@@ -36,6 +36,9 @@
 
 ## TODO - CODING:
 
+* [ ] Write a (weight)-logger module for Guergiev
+* [ ] Write a get_test_error function for Guergiev
+* [ ] Write an eval_comp_dnn function
 * [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Optimize the code - run faster time it!
 * [ ] Run BO pipeline for CNNs - figure out memory usage
@@ -46,11 +49,6 @@
 
 ## TODO - REPORT/PRESENTATION:
 
-* [ ] Supervision meeting
-    * [x] Backpropagation
-    * [ ] Pyramidal segregation - integration
-    * [ ] Math/model Guergiev
-    * [ ] Get basic model comparison?????
 * [ ] Read papers/Add first notes of papers
     * [x] Lillicrap et al (2016)
     * [ ] Guergiev et al (2017)
@@ -61,5 +59,5 @@
 * [ ] Add first skeleton of report/sections - max 10 pages
     * [x] Backprop/Notation
     * [ ] Literature Notes
-* [ ] Overview figure - Problems with backprop
 * [x] Overview figure - Solution approaches
+* [ ] Overview of hyperparameter spaces
