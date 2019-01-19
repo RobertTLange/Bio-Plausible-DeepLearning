@@ -46,7 +46,7 @@ class Weight_CompDNN_Logger():
 
         if self.weights is not None:
             for l_id in range(len(weights)):
-                self.compute_stats(l_id)
+                self.compute_stats(l_id, weights[l_id], weight_gradients[l_id])
 
         self.weights = weights
         self.weight_gradients = weight_gradients

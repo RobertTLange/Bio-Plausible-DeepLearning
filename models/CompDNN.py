@@ -497,7 +497,9 @@ class Network:
 
         if logging:
             logger = CompDNN_Logger("logs", "/guergiev_temp.pkl")
-            # wlogger = Weight_CompDNN_Logger("logs/guergiev_weights_temp.pkl")
+            wlogger = Weight_CompDNN_Logger("logs",
+                                            "/guergiev_weights_temp.pkl",
+                                            list(np.arange(self.M)))
 
         if b_etas is None and update_feedback_weights:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
@@ -597,13 +599,19 @@ class Network:
                                           train_loss, test_loss,
                                           train_acc, test_acc)
 
+                            weight_gradients = []
+                            for l_id in range(len(self.l)):
+                                weight_gradients.append(self.l[l_id].delta_W)
+                            wlogger.update(self.current_epoch*self.num_train + n,
+                                           self.W, weight_gradients)
+
             # update latest epoch counter
             self.current_epoch += 1
 
-
     def test_weights(self, test_train):
         '''
-        Test the network's current weights on the test set. The network's layers are copied
+        Test the network's current weights on the test set.
+        The network's layers are copied
         and restored to their previous state after testing.
 
         Arguments:
@@ -694,23 +702,6 @@ class Network:
 
         return 1-err_rate/100, cross_ent_loss/n_test
 
-    def save_weights(self, path, prefix=""):
-        '''
-        Save the network's current weights to .npy files.
-
-        Arguments:
-            path (string)   : The path of the folder in which to save the network's weights.
-            prefix (string) : A prefix to append to the filenames of the saved weights.
-        '''
-
-        for m in range(self.M):
-            np.save(os.path.join(path, prefix + "W_{}.npy".format(m)), self.W[m])
-            np.save(os.path.join(path, prefix + "b_{}.npy".format(m)), self.b[m])
-            if m != self.M - 1:
-                np.save(os.path.join(path, prefix + "Y_{}.npy".format(m)), self.Y[m])
-                if use_feedback_bias:
-                    np.save(os.path.join(path, prefix + "c_{}.npy".format(m)), self.c[m])
-
 
 class Layer:
     def __init__(self, net, m):
@@ -754,29 +745,29 @@ class hiddenLayer(Layer):
         self.f_input_size = f_input_size
         self.b_input_size = b_input_size
 
-        self.A             = np.zeros((self.size, 1))
-        self.B             = np.zeros((self.size, 1))
-        self.C             = np.zeros((self.size, 1))
-        self.lambda_C      = np.zeros((self.size, 1))
+        self.A = np.zeros((self.size, 1))
+        self.B = np.zeros((self.size, 1))
+        self.C = np.zeros((self.size, 1))
+        self.lambda_C = np.zeros((self.size, 1))
 
-        self.S_hist        = np.zeros((self.size, mem), dtype=np.int8)
+        self.S_hist = np.zeros((self.size, mem), dtype=np.int8)
 
-        self.E       = np.zeros((self.size, 1))
+        self.E = np.zeros((self.size, 1))
         self.delta_W = np.zeros(self.net.W[self.m].shape)
         self.delta_Y = np.zeros(self.net.Y[self.m].shape)
         self.delta_b = np.zeros((self.size, 1))
 
-        self.average_C_f        = np.zeros((self.size, 1))
-        self.average_C_t        = np.zeros((self.size, 1))
-        self.average_A_f        = np.zeros((self.size, 1))
-        self.average_A_t        = np.zeros((self.size, 1))
+        self.average_C_f = np.zeros((self.size, 1))
+        self.average_C_t = np.zeros((self.size, 1))
+        self.average_A_f = np.zeros((self.size, 1))
+        self.average_A_t = np.zeros((self.size, 1))
         self.average_lambda_C_f = np.zeros((self.size, 1))
-        self.average_PSP_B_f    = np.zeros((self.f_input_size, 1))
+        self.average_PSP_B_f = np.zeros((self.f_input_size, 1))
         if update_feedback_weights:
             self.average_PSP_A_f = np.zeros((self.b_input_size, 1))
 
-        self.alpha_f            = np.zeros((self.size, 1))
-        self.alpha_t            = np.zeros((self.size, 1))
+        self.alpha_f = np.zeros((self.size, 1))
+        self.alpha_t = np.zeros((self.size, 1))
 
         # set integration counter
         self.integration_counter = 0
@@ -785,10 +776,10 @@ class hiddenLayer(Layer):
         self.create_integration_vars()
 
     def create_integration_vars(self):
-        self.A_hist        = np.zeros((self.size, integration_time))
-        self.PSP_A_hist    = np.zeros((self.b_input_size, integration_time))
-        self.PSP_B_hist    = np.zeros((self.f_input_size, integration_time))
-        self.C_hist        = np.zeros((self.size, integration_time))
+        self.A_hist = np.zeros((self.size, integration_time))
+        self.PSP_A_hist = np.zeros((self.b_input_size, integration_time))
+        self.PSP_B_hist = np.zeros((self.f_input_size, integration_time))
+        self.C_hist = np.zeros((self.size, integration_time))
         self.lambda_C_hist = np.zeros((self.size, integration_time))
 
     def clear_vars(self):
@@ -796,34 +787,34 @@ class hiddenLayer(Layer):
         Clear all layer variables.
         '''
 
-        self.A             *= 0
-        self.B             *= 0
-        self.C             *= 0
-        self.lambda_C      *= 0
+        self.A *= 0
+        self.B *= 0
+        self.C *= 0
+        self.lambda_C *= 0
 
-        self.S_hist        *= 0
-        self.A_hist        *= 0
-        self.PSP_A_hist    *= 0
-        self.PSP_B_hist    *= 0
-        self.C_hist        *= 0
+        self.S_hist *= 0
+        self.A_hist *= 0
+        self.PSP_A_hist *= 0
+        self.PSP_B_hist *= 0
+        self.C_hist *= 0
         self.lambda_C_hist *= 0
 
-        self.E       *= 0
+        self.E *= 0
         self.delta_W *= 0
         self.delta_Y *= 0
         self.delta_b *= 0
 
-        self.average_C_f        *= 0
-        self.average_C_t        *= 0
-        self.average_A_f        *= 0
-        self.average_A_t        *= 0
+        self.average_C_f *= 0
+        self.average_C_t *= 0
+        self.average_A_f *= 0
+        self.average_A_t *= 0
         self.average_lambda_C_f *= 0
-        self.average_PSP_B_f    *= 0
+        self.average_PSP_B_f *= 0
         if update_feedback_weights:
             self.average_PSP_A_f *= 0
 
-        self.alpha_f            *= 0
-        self.alpha_t            *= 0
+        self.alpha_f *= 0
+        self.alpha_t *= 0
 
         self.integration_counter = 0
 
@@ -839,15 +830,15 @@ class hiddenLayer(Layer):
                 self.E_bp = (np.dot(self.net.W[self.m+1].T, self.net.l[self.m+1].E_bp)*k_B*lambda_max*deriv_sigma(self.average_C_f))
         else:
             self.E_bp = (np.dot(self.net.W[self.m+1].T, self.net.l[self.m+1].E_bp)*k_B*lambda_max*deriv_sigma(self.average_C_f))
-            self.E    = self.E_bp
+            self.E = self.E_bp
 
         if record_backprop_angle and (not use_backprop) and calc_E_bp:
             self.delta_b_bp = self.E_bp
 
-        self.delta_W        = np.dot(self.E, self.average_PSP_B_f.T)
+        self.delta_W = np.dot(self.E, self.average_PSP_B_f.T)
         self.net.W[self.m] += -self.net.f_etas[self.m]*P_hidden*self.delta_W
 
-        self.delta_b        = self.E
+        self.delta_b = self.E
         self.net.b[self.m] += -self.net.f_etas[self.m]*P_hidden*self.delta_b
 
     def update_Y(self):
@@ -1024,22 +1015,22 @@ class finalLayer(Layer):
 
         self.f_input_size = f_input_size
 
-        self.B             = np.zeros((self.size, 1))
-        self.I             = np.zeros((self.size, 1))
-        self.C             = np.zeros((self.size, 1))
-        self.lambda_C      = np.zeros((self.size, 1))
+        self.B = np.zeros((self.size, 1))
+        self.I = np.zeros((self.size, 1))
+        self.C = np.zeros((self.size, 1))
+        self.lambda_C = np.zeros((self.size, 1))
 
-        self.S_hist        = np.zeros((self.size, mem), dtype=np.int8)
+        self.S_hist = np.zeros((self.size, mem), dtype=np.int8)
 
-        self.E       = np.zeros((self.size, 1))
+        self.E = np.zeros((self.size, 1))
         self.delta_W = np.zeros(self.net.W[self.m].shape)
         self.delta_b = np.zeros((self.size, 1))
 
-        self.average_C_f        = np.zeros((self.size, 1))
-        self.average_C_t        = np.zeros((self.size, 1))
+        self.average_C_f = np.zeros((self.size, 1))
+        self.average_C_t = np.zeros((self.size, 1))
         self.average_lambda_C_f = np.zeros((self.size, 1))
         self.average_lambda_C_t = np.zeros((self.size, 1))
-        self.average_PSP_B_f    = np.zeros((self.f_input_size, 1))
+        self.average_PSP_B_f = np.zeros((self.f_input_size, 1))
 
         # set integration counter
         self.integration_counter = 0
@@ -1048,8 +1039,8 @@ class finalLayer(Layer):
         self.create_integration_vars()
 
     def create_integration_vars(self):
-        self.PSP_B_hist    = np.zeros((self.f_input_size, integration_time))
-        self.C_hist        = np.zeros((self.size, integration_time))
+        self.PSP_B_hist = np.zeros((self.f_input_size, integration_time))
+        self.C_hist = np.zeros((self.size, integration_time))
         self.lambda_C_hist = np.zeros((self.size, integration_time))
 
     def clear_vars(self):
@@ -1057,25 +1048,25 @@ class finalLayer(Layer):
         Clear all layer variables.
         '''
 
-        self.B             *= 0
-        self.I             *= 0
-        self.C             *= 0
-        self.lambda_C      *= 0
+        self.B *= 0
+        self.I *= 0
+        self.C *= 0
+        self.lambda_C *= 0
 
-        self.S_hist        *= 0
-        self.PSP_B_hist    *= 0
-        self.C_hist        *= 0
+        self.S_hist *= 0
+        self.PSP_B_hist *= 0
+        self.C_hist *= 0
         self.lambda_C_hist *= 0
 
-        self.E       *= 0
+        self.E *= 0
         self.delta_W *= 0
         self.delta_b *= 0
 
-        self.average_C_f        *= 0
-        self.average_C_t        *= 0
+        self.average_C_f *= 0
+        self.average_C_t *= 0
         self.average_lambda_C_f *= 0
         self.average_lambda_C_t *= 0
-        self.average_PSP_B_f    *= 0
+        self.average_PSP_B_f *= 0
 
         self.integration_counter = 0
 
@@ -1089,10 +1080,10 @@ class finalLayer(Layer):
         if use_backprop or (record_backprop_angle and calc_E_bp):
             self.E_bp = (self.average_lambda_C_t - lambda_max*sigma(self.average_C_f))*-k_D*lambda_max*deriv_sigma(self.average_C_f)
 
-        self.delta_W        = np.dot(self.E, self.average_PSP_B_f.T)
+        self.delta_W = np.dot(self.E, self.average_PSP_B_f.T)
         self.net.W[self.m] += -self.net.f_etas[self.m]*P_final*self.delta_W
 
-        self.delta_b        = self.E
+        self.delta_b = self.E
         self.net.b[self.m] += -self.net.f_etas[self.m]*P_final*self.delta_b
 
     def update_B(self, f_input):
