@@ -575,24 +575,29 @@ class Network:
 
                 self.losses[k*self.num_train + n] = self.loss
 
-                if (n+1) % log_freq == 0 and verbose:
+                if (n+1) % log_freq == 0 and logging:
                     template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
                     template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
                     if n != self.num_train - 1:
-                        # we're partway through an epoch; do a quick weight test
-                        # get end time & reset start time
+                        train_acc, train_loss = self.get_test_error(self.X_train, self.y_train)
+                        end_time = time.time()
+                        time_elapsed = end_time - start_time
+
+                        if verbose:
+                            print(template.format("Train", self.current_epoch + 1, n+1,
+                                                  self.num_train, train_acc, train_loss, time_elapsed))
+
+                        start_time = time.time()
+                        test_acc, test_loss = self.get_test_error(self.X_valid, self.y_valid)
                         end_time = time.time()
                         time_elapsed = end_time - start_time
                         start_time = None
 
-                        test_acc, test_loss = self.test_weights(test_train=False)
-                        train_acc, train_loss = self.test_weights(test_train=True)
-                        print(template.format("Train", self.current_epoch + 1, n+1,
-                                              self.num_train, train_acc, train_loss, time_elapsed))
-                        print(template.format("Valid", self.current_epoch + 1, n+1,
-                                              self.num_train, test_acc, test_loss, time_elapsed))
+                        if verbose:
+                            print(template.format("Valid", self.current_epoch + 1, n+1,
+                                                  self.num_train, test_acc, test_loss, time_elapsed))
 
-                        print('-' * 73)
+                            print('-' * 73)
 
                         if logging:
                             logger.update(self.current_epoch*self.num_train + n,
@@ -608,7 +613,7 @@ class Network:
             # update latest epoch counter
             self.current_epoch += 1
 
-    def test_weights(self, test_train):
+    def get_test_error(self, X, y):
         '''
         Test the network's current weights on the test set.
         The network's layers are copied
@@ -639,12 +644,8 @@ class Network:
         cross_ent_loss = 0
 
         # shuffle testing data
-        if test_train:
-            X_temp, y_temp = shuffle_arrays(self.X_train, self.y_train)
-            n_test = self.num_train
-        else:
-            X_temp, y_temp = shuffle_arrays(self.X_valid, self.y_valid)
-            n_test = self.num_valid
+        X_temp, y_temp = shuffle_arrays(X, y)
+        n_test = X.shape[1]
 
         digits = np.arange(10)
 

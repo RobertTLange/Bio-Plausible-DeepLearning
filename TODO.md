@@ -33,13 +33,14 @@
 * [x] Check what is wrong with reload of BO logs
 * [x] Make weight logging not store whole weights but only stats!
 * [x] Change weight change plot for all three datasets
+* [ ] Restructure Guergiev code and integrate into current pipeline
+    * [x] Delete random stuff
+    * [x] Write a (weight)-logger module for Guergiev
+    * [x] Write a get_test_error function for Guergiev
 
 ## TODO - CODING:
 
-* [ ] Write a (weight)-logger module for Guergiev
-* [ ] Write a get_test_error function for Guergiev
 * [ ] Write an eval_comp_dnn function
-* [ ] Restructure Guergiev code and integrate into current pipeline
 * [ ] Optimize the code - run faster time it!
 * [ ] Run BO pipeline for CNNs - figure out memory usage
 * [ ] Add a BO pipeline for guergiev
