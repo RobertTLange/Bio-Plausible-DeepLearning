@@ -671,7 +671,8 @@ class Network:
                 num_correct += 1
             else:
                 prob_corr_num = np.mean(self.l[-1].average_C_f.reshape(-1, self.n_neurons_per_category), axis=-1)[int(target_num)]
-                cross_ent_loss += np.log(prob_corr_num)
+                prob_corr_num = np.clip(prob_corr_num, 1e-12, 1. - 1e-12)
+                cross_ent_loss += -np.log(prob_corr_num)
 
         # calculate percent error
         err_rate = (1.0 - float(num_correct)/n_test)*100.0
@@ -691,7 +692,7 @@ class Network:
         for m in range(self.M):
             self.l[m].clear_vars()
 
-        return 1-err_rate/100, cross_ent_loss
+        return 1-err_rate/100, cross_ent_loss/n_test
 
     def save_weights(self, path, prefix=""):
         '''
@@ -709,31 +710,6 @@ class Network:
                 np.save(os.path.join(path, prefix + "Y_{}.npy".format(m)), self.Y[m])
                 if use_feedback_bias:
                     np.save(os.path.join(path, prefix + "c_{}.npy".format(m)), self.c[m])
-
-    def load_weights(self, path, prefix=""):
-        '''
-        Load weights from .npy files and set them to the network's weights.
-
-        Arguments:
-            path (string)   : The path of the folder from which to load the weights.
-            prefix (string) : Prefix appended to the filenames of the saved weights.
-        '''
-
-        print("Loading weights from \"{}\" with prefix \"{}\".".format(path, prefix))
-        print("--------------------------------")
-
-        for m in range(self.M):
-            self.W[m] = np.load(os.path.join(path, prefix + "W_{}.npy".format(m)))
-            self.b[m] = np.load(os.path.join(path, prefix + "b_{}.npy".format(m)))
-            if m != self.M - 1:
-                self.Y[m] = np.load(os.path.join(path, prefix + "Y_{}.npy".format(m)))
-                if use_feedback_bias:
-                    self.c[m] = np.load(os.path.join(path, prefix + "c_{}.npy".format(m)))
-
-        # print network weights
-        self.print_weights()
-
-        print("--------------------------------")
 
 
 class Layer:

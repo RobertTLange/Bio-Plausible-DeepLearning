@@ -23,7 +23,7 @@ class CompDNN_Logger():
     def dump_data(self):
         with open(self.save_fname, 'wb') as fp:
             pickle.dump(self.iterations, fp)
-            pickle.dump(self.train_lossses, fp)
+            pickle.dump(self.train_losses, fp)
             pickle.dump(self.val_losses, fp)
             pickle.dump(self.train_accs, fp)
             pickle.dump(self.val_accs, fp)
