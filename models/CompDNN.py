@@ -18,7 +18,7 @@ from scipy.special import expit
 from sklearn.utils import shuffle
 from sklearn.model_selection import StratifiedKFold
 
-from utils.helpers import to_one_hot
+from utils.helpers import to_one_hot, prep_data_guergiev
 from models.CompDNN_hyperparameters import *
 
 
@@ -70,6 +70,7 @@ class Network:
         self.X_train, self.y_train = prep_data_guergiev(X_train, y_train)
         self.X_valid, self.y_valid = prep_data_guergiev(X_valid, y_valid)
 
+        self.num_train = self.X_train.shape[1]
         self.n_in = self.X_train.shape[0]  # input size
         self.n_out = self.n[-1]            # output size
 
@@ -480,7 +481,7 @@ class Network:
                 # increase magnitude of surviving weights
                 self.Y[m] *= 5
 
-    def train(self, f_etas, b_etas, n_epochs, n_training_examples, save_simulation, simulations_folder=default_simulations_folder, folder_name="", overwrite=False, simulation_notes=None, current_epoch=None):
+    def train(self, f_etas, b_etas, n_epochs, save_simulation, simulations_folder=default_simulations_folder, folder_name="", overwrite=False, simulation_notes=None, current_epoch=None):
         '''
         Train the network. Checkpoints will be saved at the end of every epoch if save_simulation is True.
 
@@ -489,7 +490,6 @@ class Network:
             b_etas (tuple/None)         : Learning rates for each layer's feedback weights.
                                           If None, no backward weight updates occur.
             n_epochs (int)              : Number of epochs of training.
-            n_training_examples (int)   : Number of training examples per epoch.
             save_simulation (bool)      : Whether to save data from this simulation.
             simulations_folder (string) : Name of the parent folder that can contain data from multiple simulations.
             folder_name (string)        : Name of the subfolder in the parent folder that will contain data from this simulation.
@@ -519,11 +519,11 @@ class Network:
         if use_rand_phase_lengths:
             # generate phase lengths for all training examples
             global l_f_phase, l_t_phase
-            l_f_phases = min_l_f_phase + np.random.wald(2, 1, n_epochs*n_training_examples).astype(int)
-            l_t_phases = min_l_t_phase + np.random.wald(2, 1, n_epochs*n_training_examples).astype(int)
+            l_f_phases = min_l_f_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
+            l_t_phases = min_l_t_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
         else:
-            l_f_phases = np.zeros(n_epochs*n_training_examples) + l_f_phase
-            l_t_phases = np.zeros(n_epochs*n_training_examples) + l_t_phase
+            l_f_phases = np.zeros(n_epochs*self.num_train) + l_f_phase
+            l_t_phases = np.zeros(n_epochs*self.num_train) + l_t_phase
 
         # get array of total length of both phases for all training examples
         l_phases_tot = l_f_phases + l_t_phases
@@ -535,47 +535,47 @@ class Network:
         if not continuing:
             # initialize full/quick test error recording array
             self.full_test_errs = np.zeros(n_epochs + 1)
-            self.quick_test_errs = np.zeros(n_epochs*int(n_training_examples/1000.0) + 1)
+            self.quick_test_errs = np.zeros(n_epochs*int(self.num_train/1000.0) + 1)
         else:
             self.full_test_errs = np.zeros(n_epochs)
-            self.quick_test_errs = np.zeros(n_epochs*int(n_training_examples/1000.0))
+            self.quick_test_errs = np.zeros(n_epochs*int(self.num_train/1000.0))
 
         if record_loss:
-            self.losses = np.zeros(n_epochs*n_training_examples)
+            self.losses = np.zeros(n_epochs*self.num_train)
 
         if record_training_error:
             self.training_errors = np.zeros(n_epochs)
 
         if record_plateau_times:
-            self.plateau_times_full = [np.zeros((n_epochs*2*n_training_examples, self.n[m])) for m in range(self.M)]
+            self.plateau_times_full = [np.zeros((n_epochs*2*self.num_train, self.n[m])) for m in range(self.M)]
 
         if record_phase_times:
-            self.phase_times = np.zeros(n_epochs*n_training_examples*2)
+            self.phase_times = np.zeros(n_epochs*self.num_train*2)
 
             self.phase_times[0] = l_f_phases[0]
-            for i in range(1, 2*n_epochs*n_training_examples):
+            for i in range(1, 2*n_epochs*self.num_train):
                 if i % 2 == 0:
                     self.phase_times[i] = self.phase_times[i-1] + l_f_phases[int(i/2)]
                 else:
                     self.phase_times[i] = self.phase_times[i-1] + l_t_phases[int((i-1)/2)]
 
         if record_training_labels:
-            self.training_labels = np.zeros(n_epochs*n_training_examples)
+            self.training_labels = np.zeros(n_epochs*self.num_train)
 
         if record_eigvals:
             # initialize arrays for Jacobian testing
-            self.max_jacobian_eigvals = np.zeros(n_epochs*n_training_examples)
+            self.max_jacobian_eigvals = np.zeros(n_epochs*self.num_train)
             if record_matrices:
-                self.jacobian_prod_matrices = np.zeros((n_epochs*n_training_examples, self.n[-1], self.n[-1]))
+                self.jacobian_prod_matrices = np.zeros((n_epochs*self.num_train, self.n[-1], self.n[-1]))
 
             if not continuing:
-                self.max_weight_eigvals = np.zeros(n_epochs*n_training_examples + 1)
+                self.max_weight_eigvals = np.zeros(n_epochs*self.num_train + 1)
                 if record_matrices:
-                    self.weight_prod_matrices = np.zeros((n_epochs*n_training_examples + 1, self.n[-1], self.n[-1]))
+                    self.weight_prod_matrices = np.zeros((n_epochs*self.num_train + 1, self.n[-1], self.n[-1]))
             else:
-                self.max_weight_eigvals = np.zeros(n_epochs*n_training_examples)
+                self.max_weight_eigvals = np.zeros(n_epochs*self.num_train)
                 if record_matrices:
-                    self.weight_prod_matrices = np.zeros((n_epochs*n_training_examples, self.n[-1], self.n[-1]))
+                    self.weight_prod_matrices = np.zeros((n_epochs*self.num_train, self.n[-1], self.n[-1]))
 
             # create identity matrix
             I = np.eye(self.n[-1])
@@ -596,7 +596,7 @@ class Network:
         if record_backprop_angle and not use_backprop:
             # initialize backprop angles recording array
             if self.M > 1:
-                self.bp_angles = np.zeros(n_epochs*n_training_examples)
+                self.bp_angles = np.zeros(n_epochs*self.num_train)
 
         if initial_test and not continuing:
             # do an initial weight test
@@ -659,38 +659,38 @@ class Network:
 
             # generate arrays of forward phase plateau potential times (time until plateau potential from start of forward phase) for individual neurons
             if use_rand_plateau_times:
-                self.plateau_times_f = [np.zeros((n_training_examples, self.n[m])) + l_f_phases[k*n_training_examples:(k+1)*n_training_examples, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(n_training_examples, self.n[m])).astype(int)), 5) for m in range(self.M)]
+                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
             else:
-                self.plateau_times_f = [np.zeros((n_training_examples, self.n[m])) + l_f_phases[k*n_training_examples:(k+1)*n_training_examples, np.newaxis] - 1 for m in range(self.M)]
+                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
             # generate arrays of target phase plateau potential times (time until plateau potential from start of target phase) for individual neurons
             if use_rand_plateau_times:
-                self.plateau_times_t = [np.zeros((n_training_examples, self.n[m])) + l_t_phases[k*n_training_examples:(k+1)*n_training_examples, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(n_training_examples, self.n[m])).astype(int)), 5) for m in range(self.M)]
+                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
             else:
-                self.plateau_times_t = [np.zeros((n_training_examples, self.n[m])) + l_t_phases[k*n_training_examples:(k+1)*n_training_examples, np.newaxis] - 1 for m in range(self.M)]
+                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
-            for n in range(n_training_examples):
+            for n in range(self.num_train):
                 # set start time
                 if start_time == None:
                     start_time = time.time()
 
                 if use_rand_phase_lengths:
-                    l_f_phase = int(l_f_phases[k*n_training_examples + n])
-                    l_t_phase = int(l_t_phases[k*n_training_examples + n])
+                    l_f_phase = int(l_f_phases[k*self.num_train + n])
+                    l_t_phase = int(l_t_phases[k*self.num_train + n])
 
                 l_phases_tot = l_f_phase + l_t_phase
 
                 # get plateau potential times from the beginning of the simulation
                 if record_plateau_times:
-                    total_time_to_forward_phase = np.sum(l_f_phases[:k*n_training_examples + n]) + np.sum(l_t_phases[:k*n_training_examples + n])
-                    total_time_to_target_phase  = np.sum(l_f_phases[:k*n_training_examples + n + 1]) + np.sum(l_t_phases[:k*n_training_examples + n])
+                    total_time_to_forward_phase = np.sum(l_f_phases[:k*self.num_train + n]) + np.sum(l_t_phases[:k*self.num_train + n])
+                    total_time_to_target_phase  = np.sum(l_f_phases[:k*self.num_train + n + 1]) + np.sum(l_t_phases[:k*self.num_train + n])
                     for m in range(self.M):
-                        self.plateau_times_full[m][k*n_training_examples + 2*n]     = total_time_to_forward_phase + self.plateau_times_f[m][n]
-                        self.plateau_times_full[m][k*n_training_examples + 2*n + 1] = total_time_to_target_phase + self.plateau_times_t[m][n]
+                        self.plateau_times_full[m][k*self.num_train + 2*n]     = total_time_to_forward_phase + self.plateau_times_f[m][n]
+                        self.plateau_times_full[m][k*self.num_train + 2*n + 1] = total_time_to_target_phase + self.plateau_times_t[m][n]
 
                 # print every 100 examples
                 if (n+1) % 100 == 0:
-                    sys.stdout.write("\x1b[2K\rEpoch {0}, example {1}/{2}.".format(self.current_epoch + 1, n+1, n_training_examples))
+                    sys.stdout.write("\x1b[2K\rEpoch {0}, example {1}/{2}.".format(self.current_epoch + 1, n+1, self.num_train))
                     sys.stdout.flush()
 
                 # get training example data
@@ -719,10 +719,10 @@ class Network:
                 self.t_phase(self.x, self.t.repeat(self.n_neurons_per_category, axis=0), n)
 
                 if record_loss:
-                    self.losses[k*n_training_examples + n] = self.loss
+                    self.losses[k*self.num_train + n] = self.loss
 
                 if record_training_labels:
-                    self.training_labels[k*n_training_examples + n] = np.dot(np.arange(10), self.t)
+                    self.training_labels[k*self.num_train + n] = np.dot(np.arange(10), self.t)
 
                 if record_eigvals:
                     # get max eigenvalues for jacobians
@@ -731,20 +731,20 @@ class Network:
 
                     p = np.dot((I - U).T, I - U)
                     if record_matrices:
-                        self.jacobian_prod_matrices[k*n_training_examples + n] = U
-                    self.max_jacobian_eigvals[k*n_training_examples + n] = np.amax(np.linalg.eigvals(p))
+                        self.jacobian_prod_matrices[k*self.num_train + n] = U
+                    self.max_jacobian_eigvals[k*self.num_train + n] = np.amax(np.linalg.eigvals(p))
 
                     # get max eigenvalues for weights
                     U = np.dot(k_D*self.W[-1], self.Y[-2])
                     p = np.dot((I - U).T, I - U)
                     if not continuing:
                         if record_matrices:
-                            self.weight_prod_matrices[k*n_training_examples + n + 1] = U
-                        self.max_weight_eigvals[k*n_training_examples + n + 1] = np.amax(np.linalg.eigvals(p))
+                            self.weight_prod_matrices[k*self.num_train + n + 1] = U
+                        self.max_weight_eigvals[k*self.num_train + n + 1] = np.amax(np.linalg.eigvals(p))
                     else:
                         if record_matrices:
-                            self.weight_prod_matrices[k*n_training_examples + n] = U
-                        self.max_weight_eigvals[k*n_training_examples + n] = np.amax(np.linalg.eigvals(p))
+                            self.weight_prod_matrices[k*self.num_train + n] = U
+                        self.max_weight_eigvals[k*self.num_train + n] = np.amax(np.linalg.eigvals(p))
 
                     if plot_eigvals and k == 0 and n == 0:
                         # draw initial plots
@@ -762,44 +762,44 @@ class Network:
                     # get backprop angle
                     if self.M > 1:
                         bp_angle = np.arccos(np.sum(self.l[0].delta_b_bp * self.l[0].delta_b_full) / (np.linalg.norm(self.l[0].delta_b_bp)*np.linalg.norm(self.l[0].delta_b_full.T)))*180.0/np.pi
-                        self.bp_angles[k*n_training_examples + n] = bp_angle
+                        self.bp_angles[k*self.num_train + n] = bp_angle
 
                 if plot_eigvals and record_eigvals and (n+1) % 100 == 0:
-                    max_inds = np.argsort(self.max_jacobian_eigvals[k*n_training_examples + n -99:k*n_training_examples + n + 1])
-                    max_ind = np.argmax(self.max_jacobian_eigvals[k*n_training_examples + n-99:k*n_training_examples + n + 1])
-                    min_ind = np.argmin(self.max_jacobian_eigvals[k*n_training_examples + n-99:k*n_training_examples + n + 1])
-                    n_small = np.sum(self.max_jacobian_eigvals[k*n_training_examples + n-99:k*n_training_examples + n + 1] < 1)
+                    max_inds = np.argsort(self.max_jacobian_eigvals[k*self.num_train + n -99:k*self.num_train + n + 1])
+                    max_ind = np.argmax(self.max_jacobian_eigvals[k*self.num_train + n-99:k*self.num_train + n + 1])
+                    min_ind = np.argmin(self.max_jacobian_eigvals[k*self.num_train + n-99:k*self.num_train + n + 1])
+                    n_small = np.sum(self.max_jacobian_eigvals[k*self.num_train + n-99:k*self.num_train + n + 1] < 1)
 
                     # update plots
                     if record_matrices:
-                        A = np.mean(np.array([self.jacobian_prod_matrices[k*n_training_examples + n-99:k*n_training_examples + n + 1][i] for i in max_inds][:-10]), axis=0)
+                        A = np.mean(np.array([self.jacobian_prod_matrices[k*self.num_train + n-99:k*self.num_train + n + 1][i] for i in max_inds][:-10]), axis=0)
                         im_plot.set_data(A)
 
                     if record_loss:
-                        loss_plot.set_xdata(np.arange(k*n_training_examples + n))
-                        loss_plot.set_ydata(self.losses[:k*n_training_examples + n])
-                        ax2.set_xlim(0, k*n_training_examples + n)
-                        ax2.set_ylim(np.amin(self.losses[:k*n_training_examples + n]) - 1e-6, np.amax(self.losses[:k*n_training_examples + n]) + 1e-6)
+                        loss_plot.set_xdata(np.arange(k*self.num_train + n))
+                        loss_plot.set_ydata(self.losses[:k*self.num_train + n])
+                        ax2.set_xlim(0, k*self.num_train + n)
+                        ax2.set_ylim(np.amin(self.losses[:k*self.num_train + n]) - 1e-6, np.amax(self.losses[:k*self.num_train + n]) + 1e-6)
 
-                    max_jacobian_plot.set_xdata(np.arange(k*n_training_examples + n))
-                    max_jacobian_plot.set_ydata(self.max_jacobian_eigvals[:k*n_training_examples + n])
-                    ax3.set_xlim(0, k*n_training_examples + n)
-                    ax3.set_ylim(np.amin(self.max_jacobian_eigvals[:k*n_training_examples + n]) - 1e-6, np.amax(self.max_jacobian_eigvals[:k*n_training_examples + n]) + 1e-6)
+                    max_jacobian_plot.set_xdata(np.arange(k*self.num_train + n))
+                    max_jacobian_plot.set_ydata(self.max_jacobian_eigvals[:k*self.num_train + n])
+                    ax3.set_xlim(0, k*self.num_train + n)
+                    ax3.set_ylim(np.amin(self.max_jacobian_eigvals[:k*self.num_train + n]) - 1e-6, np.amax(self.max_jacobian_eigvals[:k*self.num_train + n]) + 1e-6)
 
                     fig.canvas.draw()
                     fig.canvas.flush_events()
 
                 if (n+1) % 1000 == 0:
-                    if n != n_training_examples - 1:
+                    if n != self.num_train - 1:
                         # we're partway through an epoch; do a quick weight test
                         test_err = self.test_weights(n_test=n_quick_test)
 
-                        sys.stdout.write("\x1b[2K\rEpoch {0}, example {1}/{2}. QE: {3:05.2f}%. ".format(self.current_epoch + 1, n+1, n_training_examples, test_err))
+                        sys.stdout.write("\x1b[2K\rEpoch {0}, example {1}/{2}. QE: {3:05.2f}%. ".format(self.current_epoch + 1, n+1, self.num_train, test_err))
 
                         if not continuing:
-                            self.quick_test_errs[(k+1)*int(n_training_examples/1000)] = test_err
+                            self.quick_test_errs[(k+1)*int(self.num_train/1000)] = test_err
                         else:
-                            self.quick_test_errs[(k+1)*int(n_training_examples/1000) - 1] = test_err
+                            self.quick_test_errs[(k+1)*int(self.num_train/1000) - 1] = test_err
 
                         if save_simulation:
                             with open(os.path.join(self.simulation_path, "quick_test_errors.txt"), 'a') as test_err_file:
@@ -813,10 +813,10 @@ class Network:
 
                         if not continuing:
                             self.full_test_errs[k+1] = test_err
-                            self.quick_test_errs[(k+1)*int(n_training_examples/1000)] = test_err
+                            self.quick_test_errs[(k+1)*int(self.num_train/1000)] = test_err
                         else:
                             self.full_test_errs[k] = test_err
-                            self.quick_test_errs[(k+1)*int(n_training_examples/1000) - 1] = test_err
+                            self.quick_test_errs[(k+1)*int(self.num_train/1000) - 1] = test_err
 
                         if save_simulation:
                             with open(os.path.join(self.simulation_path, "full_test_errors.txt"), 'a') as test_err_file:
@@ -825,7 +825,7 @@ class Network:
 
                         if record_training_error:
                             # calculate percent training error for this epoch
-                            err_rate = (1.0 - float(num_correct)/n_training_examples)*100.0
+                            err_rate = (1.0 - float(num_correct)/self.num_train)*100.0
                             self.training_errors[k] = err_rate
 
                             print("TE: {0:05.2f}%. ".format(err_rate), end="")
@@ -837,62 +837,62 @@ class Network:
                             print("Saving...", end="")
                             if not continuing:
                                 # we are running a new simulation
-                                quick_test_errs = self.quick_test_errs[:(k+1)*int(n_training_examples/1000)+1]
+                                quick_test_errs = self.quick_test_errs[:(k+1)*int(self.num_train/1000)+1]
                                 full_test_errs  = self.full_test_errs[:k+2]
 
                                 if record_backprop_angle and not use_backprop:
-                                    bp_angles = self.bp_angles[:(k+1)*n_training_examples]
+                                    bp_angles = self.bp_angles[:(k+1)*self.num_train]
 
                                 if record_loss:
-                                    losses = self.losses[:(k+1)*n_training_examples]
+                                    losses = self.losses[:(k+1)*self.num_train]
 
                                 if record_training_labels:
-                                    training_labels = self.training_labels[:(k+1)*n_training_examples]
+                                    training_labels = self.training_labels[:(k+1)*self.num_train]
 
                                 if record_plateau_times:
-                                    plateau_times_full = [ self.plateau_times_full[m][:(k+1)*2*n_training_examples] for m in range(self.M) ]
+                                    plateau_times_full = [ self.plateau_times_full[m][:(k+1)*2*self.num_train] for m in range(self.M) ]
 
                                 if record_training_error:
                                     training_errors = self.training_errors[:k+1]
 
                                 if record_eigvals:
-                                    max_jacobian_eigvals   = self.max_jacobian_eigvals[:(k+1)*n_training_examples]
-                                    max_weight_eigvals     = self.max_weight_eigvals[:(k+1)*n_training_examples+1]
+                                    max_jacobian_eigvals   = self.max_jacobian_eigvals[:(k+1)*self.num_train]
+                                    max_weight_eigvals     = self.max_weight_eigvals[:(k+1)*self.num_train+1]
                                     if record_matrices:
-                                        jacobian_prod_matrices = self.jacobian_prod_matrices[:(k+1)*n_training_examples]
-                                        weight_prod_matrices   = self.weight_prod_matrices[:(k+1)*n_training_examples+1]
+                                        jacobian_prod_matrices = self.jacobian_prod_matrices[:(k+1)*self.num_train]
+                                        weight_prod_matrices   = self.weight_prod_matrices[:(k+1)*self.num_train+1]
                             else:
                                 # this is a continuation of a previously-started simulation; append current recording vectors to previous ones
-                                quick_test_errs = np.concatenate([self.prev_quick_test_errs, self.quick_test_errs[:(k+1)*int(n_training_examples/1000)]], axis=0)
-                                if n == n_training_examples - 1:
+                                quick_test_errs = np.concatenate([self.prev_quick_test_errs, self.quick_test_errs[:(k+1)*int(self.num_train/1000)]], axis=0)
+                                if n == self.num_train - 1:
                                     full_test_errs = np.concatenate([self.prev_full_test_errs, self.full_test_errs[:k+1]], axis=0)
 
                                 if record_backprop_angle and not use_backprop:
-                                    bp_angles = np.concatenate([self.prev_bp_angles, self.bp_angles[:(k+1)*n_training_examples]], axis=0)
+                                    bp_angles = np.concatenate([self.prev_bp_angles, self.bp_angles[:(k+1)*self.num_train]], axis=0)
 
                                 if record_loss:
-                                    losses = np.concatenate([self.prev_losses, self.losses[:(k+1)*n_training_examples]], axis=0)
+                                    losses = np.concatenate([self.prev_losses, self.losses[:(k+1)*self.num_train]], axis=0)
 
                                 if record_training_labels:
-                                    training_labels = np.concatenate([self.prev_training_labels, self.training_labels[:(k+1)*n_training_examples]], axis=0)
+                                    training_labels = np.concatenate([self.prev_training_labels, self.training_labels[:(k+1)*self.num_train]], axis=0)
 
                                 if record_plateau_times:
-                                    plateau_times_full = [ np.concatenate([self.prev_plateau_times_full[m], self.plateau_times_full[m][:(k+1)*2*n_training_examples]]) for m in range(self.M) ]
+                                    plateau_times_full = [ np.concatenate([self.prev_plateau_times_full[m], self.plateau_times_full[m][:(k+1)*2*self.num_train]]) for m in range(self.M) ]
 
                                 if record_training_error:
                                     training_errors = np.concatenate([self.prev_training_errors, self.training_errors[:k+1]], axis=0)
 
                                 if record_eigvals:
-                                    max_jacobian_eigvals   = np.concatenate([self.prev_max_jacobian_eigvals, self.max_jacobian_eigvals[:(k+1)*n_training_examples]], axis=0)
-                                    max_weight_eigvals     = np.concatenate([self.prev_max_weight_eigvals, self.max_weight_eigvals[:(k+1)*n_training_examples]], axis=0)
+                                    max_jacobian_eigvals   = np.concatenate([self.prev_max_jacobian_eigvals, self.max_jacobian_eigvals[:(k+1)*self.num_train]], axis=0)
+                                    max_weight_eigvals     = np.concatenate([self.prev_max_weight_eigvals, self.max_weight_eigvals[:(k+1)*self.num_train]], axis=0)
                                     if record_matrices:
-                                        jacobian_prod_matrices = np.concatenate([self.prev_jacobian_prod_matrices, self.jacobian_prod_matrices[:(k+1)*n_training_examples]], axis=0)
-                                        weight_prod_matrices   = np.concatenate([self.prev_weight_prod_matrices, self.weight_prod_matrices[:(k+1)*n_training_examples]], axis=0)
+                                        jacobian_prod_matrices = np.concatenate([self.prev_jacobian_prod_matrices, self.jacobian_prod_matrices[:(k+1)*self.num_train]], axis=0)
+                                        weight_prod_matrices   = np.concatenate([self.prev_weight_prod_matrices, self.weight_prod_matrices[:(k+1)*self.num_train]], axis=0)
 
                             # save quick test error
                             np.save(os.path.join(self.simulation_path, "quick_test_errors.npy"), quick_test_errs)
 
-                            if n == n_training_examples - 1:
+                            if n == self.num_train - 1:
                                 # save test error
                                 np.save(os.path.join(self.simulation_path, "full_test_errors.npy"), full_test_errs)
 
@@ -929,10 +929,10 @@ class Network:
 
                     if record_eigvals:
                         # print the minimum max eigenvalue of (I - J_g*J_f).T * (I - J_g*J_f) from the last 1000 examples
-                        print("Min max Jacobian eigval: {:.4f}. ".format(np.amin(self.max_jacobian_eigvals[max(0, k*n_training_examples + n - 999):k*n_training_examples + n + 1])), end="")
+                        print("Min max Jacobian eigval: {:.4f}. ".format(np.amin(self.max_jacobian_eigvals[max(0, k*self.num_train + n - 999):k*self.num_train + n + 1])), end="")
 
                         # print the number of max eigenvalues of (I - J_g*J_f).T * (I - J_g*J_f) from the last 1000 examples that were smaller than 1
-                        print("# max eigvals < 1: {}. ".format(np.sum(self.max_jacobian_eigvals[max(0, k*n_training_examples + n - 999):k*n_training_examples + n + 1] < 1)), end="")
+                        print("# max eigvals < 1: {}. ".format(np.sum(self.max_jacobian_eigvals[max(0, k*self.num_train + n - 999):k*self.num_train + n + 1] < 1)), end="")
 
                     # get end time & reset start time
                     end_time = time.time()
@@ -979,7 +979,7 @@ class Network:
         num_correct = 0
 
         # shuffle testing data
-        self.X_valid, self.y_valid = shuffle_arrays(self.X_test, self.y_valid)
+        self.X_valid, self.y_valid = shuffle_arrays(self.X_valid, self.y_valid)
 
         digits = np.arange(10)
 

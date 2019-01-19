@@ -170,26 +170,22 @@ def load_cifar_10(negatives=False):
     return X, y
 
 
-def to_one_hot(y_train, y_test):
+def to_one_hot(y, num_classes=10):
     # Convert label vector into one-hot-encoded vector
-    oh_y_train = np.zeros((y_train.shape[0], 10))
-    oh_y_test = np.zeros((y_test.shape[0], 10))
+    oh_y = np.zeros((y.shape[0], num_classes))
+    oh_y[np.arange(oh_y.shape[0]), y] = 1
 
-    oh_y_train[np.arange(oh_y_train.shape[0]), y_train] = 1
-    oh_y_test[np.arange(oh_y_test.shape[0]), y_test] = 1
+    return oh_y
 
-    return oh_y_train, oh_y_test
 
 def prep_data_guergiev(X, y):
     dims = list(X.shape)
     dim_flat = np.prod(dims)/X.shape[0]
-    dim_v_flat = np.prod(dims_v)/X_.shape[0]
 
-    X_test = X_test.reshape(X_test.shape[0], int(dim_flat))
+    X = X.reshape(X.shape[0], int(dim_flat)).T
+    y = to_one_hot(y).T
+    return X, y
 
-    # Transform data into Guergiev transpose format
-    y_train, y_valid = to_one_hot(y_train, y_valid)
-    return
 
 """
 - Modeling specific helpers
@@ -199,6 +195,8 @@ def prep_data_guergiev(X, y):
     d. Perform training of model
     e. Compute dimension of filtered image at next layer
 """
+
+
 def init_weights(m):
     if type(m) == nn.Linear:
         torch.nn.init.xavier_uniform(m.weight)
