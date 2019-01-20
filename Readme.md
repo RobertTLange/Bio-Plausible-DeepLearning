@@ -13,6 +13,8 @@ For more blabla and blublub please check out the following two documents:
 * [Final Report](report/background.pdf)
 * [Final Presentation](report/presentation.pdf)
 
+![Alt text](figures/learning.png)
+
 ## Repository Structure
 ```
 Bio-Plausible-DeepLearning

@@ -356,7 +356,8 @@ def train_model(model_type, model, num_epochs,
     return model
 
 
-def train_step(model_type, model, dataset, device, criterion, batch_size, optimizer):
+def train_step(model_type, model, dataset,
+               device, criterion, batch_size, optimizer):
 
     model.train()
     y_preds = []
@@ -390,7 +391,8 @@ def train_step(model_type, model, dataset, device, criterion, batch_size, optimi
     }
 
 
-def valid_step(model_type, model, X_valid, y_valid, batch_s, device, criterion):
+def valid_step(model_type, model, X_valid, y_valid,
+               batch_s, device, criterion):
 
     model.eval()
     tic = time.time()

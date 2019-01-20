@@ -496,9 +496,9 @@ class Network:
         '''
 
         if logging:
-            logger = CompDNN_Logger("logs", "/guergiev_temp.pkl")
+            logger = CompDNN_Logger("logs", "/cifar10_guergiev_temp.pkl")
             wlogger = Weight_CompDNN_Logger("logs",
-                                            "/guergiev_weights_temp.pkl",
+                                            "/cifar10_guergiev_weights_temp.pkl",
                                             list(np.arange(self.M)))
 
         if b_etas is None and update_feedback_weights:

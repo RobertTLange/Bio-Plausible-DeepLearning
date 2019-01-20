@@ -40,6 +40,7 @@
 
 ## TODO - CODING:
 
+* [ ] Change plots for all three model types
 * [ ] Write an eval_comp_dnn function
 * [ ] Optimize the code - run faster time it!
 * [ ] Run BO pipeline for CNNs - figure out memory usage

@@ -74,6 +74,49 @@ class Weight_CompDNN_Logger():
         return
 
 
+def process_guergiev_logger(log_fnames, log_type):
+    if log_type == "performance":
+        iterations = []
+        train_losses = []
+        val_losses = []
+        train_accuracies = []
+        val_accuracies = []
+
+        for log_fname in log_fnames:
+            with open(log_fname, 'rb') as fp:
+                its = pickle.load(fp, encoding='latin1')
+                train_loss = pickle.load(fp, encoding='latin1')
+                val_loss = pickle.load(fp, encoding='latin1')
+                train_acc = pickle.load(fp, encoding='latin1')
+                val_acc = pickle.load(fp, encoding='latin1')
+
+            iterations.append(its)
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            train_accuracies.append(train_acc)
+            val_accuracies.append(val_acc)
+        # return iterations and performance measures
+        return iterations, train_losses, val_losses, train_accuracies, val_accuracies
+
+    elif log_type == "weights":
+        iterations = []
+        fr_n_weights = []
+        fr_n_weights_ch = []
+        fr_n_weights_grad_ch = []
+        for log_fname in log_fnames:
+            with open(log_fname, 'rb') as fp:
+                its = pickle.load(fp, encoding='latin1')
+                fr_n_weight = pickle.load(fp, encoding='latin1')
+                fr_n_weight_ch = pickle.load(fp, encoding='latin1')
+                fr_n_weight_grad_ch = pickle.load(fp, encoding='latin1')
+
+            iterations.append(its)
+            fr_n_weights.append(fr_n_weight)
+            fr_n_weights_ch.append(fr_n_weight_ch)
+            fr_n_weights_grad_ch.append(fr_n_weight_grad_ch)
+        # return iterations, weights, weight_grad, biases, bias_grad
+        return iterations[1:], fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch
+
 
 def plot_weights(W_list, save_dir=None, suffix=None, normalize=False):
     '''

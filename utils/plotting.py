@@ -27,52 +27,65 @@ def smooth(ts, windowSize):
 
 def plot_learning(its, train_acc, val_acc,
                   train_loss, val_loss,
-                  sm_window, pl_type, title):
-    # Transform ticks such that they have numb x 10^5 shape
-    its_ticks = np.arange(100000, np.max(its), 100000)
-    its_labels_temp = [str(int(it/100000)) for it in its_ticks]
-    its_labels = [it_l + r"$\times 10^5$" for it_l in its_labels_temp]
-    its_labels[0] = r"$10^5$"
+                  sm_window, pl_type, title, labels):
 
-    if sm_window > 1:
-        train_acc = smooth(train_acc, sm_window)
-        val_acc = smooth(val_acc, sm_window)
-        train_loss = smooth(train_loss, sm_window)
-        val_loss = smooth(val_loss, sm_window)
+    for i in range(len(train_acc)):
+        its_temp = its[i]
+        # Transform ticks such that they have numb x 10^5 shape
+        its_ticks = np.arange(100000, np.max(its_temp), 100000)
+        its_labels_temp = [str(int(it/100000)) for it in its_ticks]
+        its_labels = [it_l + r"$\times 10^5$" for it_l in its_labels_temp]
+        its_labels[0] = r"$10^5$"
 
-    if pl_type == "accuracy":
-        plt.plot(its[sm_window-1:], train_acc, c="r", label="BP-MLP: Train")
-        plt.plot(its[sm_window-1:], val_acc, c="g", label="BP-MLP: Val.")
-        plt.ylabel('Accuracy')
-        plt.title(title)
-        plt.xticks(its_ticks, [])
-        plt.legend(loc=4, fontsize=8)
-    elif pl_type == "loss":
-        plt.plot(its[sm_window-1:], train_loss, c="b", label="BP-MLP: Train")
-        plt.plot(its[sm_window-1:], val_loss, c="y", label="BP-MLP: Val.")
-        plt.xlabel('Data Points')
-        plt.ylabel('Loss')
-        plt.xticks(its_ticks, its_labels)
-        plt.legend(loc=1, fontsize=8)
+        train_acc_temp = train_acc[i]
+        val_acc_temp = val_acc[i]
+        train_loss_temp = train_loss[i]
+        val_loss_temp = val_loss[i]
+
+        if sm_window > 1:
+            train_acc_temp = smooth(train_acc_temp, sm_window)
+            val_acc_temp = smooth(val_acc_temp, sm_window)
+            train_loss_temp = smooth(train_loss_temp, sm_window)
+            val_loss_temp = smooth(val_loss_temp, sm_window)
+
+        if pl_type == "accuracy":
+            plt.plot(its_temp[sm_window-1:], train_acc_temp,
+                     c=CB_color_cycle[i*2], label=labels[i*2])
+            plt.plot(its_temp[sm_window-1:], val_acc_temp,
+                     c=CB_color_cycle[i*2+1], label=labels[i*2+1])
+            plt.ylabel('Accuracy')
+            plt.title(title)
+            plt.xticks(its_ticks, [])
+            plt.legend(loc=4, fontsize=8)
+        elif pl_type == "loss":
+            plt.plot(its_temp[sm_window-1:], train_loss_temp,
+                     c=CB_color_cycle[i*2], label=labels[i*2])
+            plt.plot(its_temp[sm_window-1:], val_loss_temp,
+                     c=CB_color_cycle[i*2+1], label=labels[i*2+1])
+            plt.xlabel('Data Points')
+            plt.ylabel('Loss')
+            plt.xticks(its_ticks, its_labels)
+            plt.legend(loc=1, fontsize=8)
 
 
 def plot_all_learning(its, train_accs, val_accs,
                       train_losses, val_losses, sm_window,
-                      sub_titles, save_fname=None):
+                      sub_titles, labels, save_fname=None):
     plt.figure(figsize=(10, 8), dpi=200)
 
     counter = 0
 
-    for i in range(len(train_losses)):
+    # Loop Over all Datasets
+    for i in range(3):
         counter += 1
-        plt.subplot(2, len(train_losses), counter)
+        plt.subplot(2, 3, counter)
         plot_learning(its[i], train_accs[i], val_accs[i],
                       train_losses[i], val_losses[i],
-                      sm_window, "accuracy", sub_titles[i])
-        plt.subplot(2, len(train_losses), counter+len(train_losses))
+                      sm_window, "accuracy", sub_titles[i], labels)
+        plt.subplot(2, 3, counter+len(train_losses))
         plot_learning(its[i], train_accs[i], val_accs[i],
                       train_losses[i], val_losses[i],
-                      sm_window, "loss", sub_titles[i])
+                      sm_window, "loss", sub_titles[i], labels)
 
     plt.tight_layout()
     if save_fname is not None:
