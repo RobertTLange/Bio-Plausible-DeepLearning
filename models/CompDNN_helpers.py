@@ -110,12 +110,12 @@ def process_guergiev_logger(log_fnames, log_type):
                 fr_n_weight_ch = pickle.load(fp, encoding='latin1')
                 fr_n_weight_grad_ch = pickle.load(fp, encoding='latin1')
 
-            iterations.append(its)
+            iterations.append(its[1:])
             fr_n_weights.append(fr_n_weight)
             fr_n_weights_ch.append(fr_n_weight_ch)
             fr_n_weights_grad_ch.append(fr_n_weight_grad_ch)
         # return iterations, weights, weight_grad, biases, bias_grad
-        return iterations[1:], fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch
+        return iterations, fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch
 
 
 def plot_weights(W_list, save_dir=None, suffix=None, normalize=False):

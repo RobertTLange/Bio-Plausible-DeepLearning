@@ -213,18 +213,38 @@ class WeightLogger():
             pickle.dump(self.fr_n_biases_grad_ch, fp)
 
 
-def process_logger_weights(log_fname):
+def process_logger_weights(log_fnames):
     # Load in the Weight Logs
-    with open(log_fname, 'rb') as fp:
-        iterations = pickle.load(fp, encoding='latin1')
+    iterations = []
 
-        fr_n_weights = pickle.load(fp, encoding='latin1')
-        fr_n_weights_ch = pickle.load(fp, encoding='latin1')
-        fr_n_weights_grad_ch = pickle.load(fp, encoding='latin1')
+    fr_n_weights = []
+    fr_n_weights_ch = []
+    fr_n_weights_grad_ch = []
 
-        fr_n_biases = pickle.load(fp, encoding='latin1')
-        fr_n_biases_ch = pickle.load(fp, encoding='latin1')
-        fr_n_biases_grad_ch = pickle.load(fp, encoding='latin1')
+    fr_n_biases = []
+    fr_n_biases_ch = []
+    fr_n_biases_grad_ch = []
+
+    for log_fname in log_fnames:
+        with open(log_fname, 'rb') as fp:
+            its = pickle.load(fp, encoding='latin1')
+
+            fr_n_weight = pickle.load(fp, encoding='latin1')
+            fr_n_weight_ch = pickle.load(fp, encoding='latin1')
+            fr_n_weight_grad_ch = pickle.load(fp, encoding='latin1')
+
+            fr_n_bias = pickle.load(fp, encoding='latin1')
+            fr_n_bias_ch = pickle.load(fp, encoding='latin1')
+            fr_n_bias_grad_ch = pickle.load(fp, encoding='latin1')
+
+        iterations.append(its[1:])
+        fr_n_weights.append(fr_n_weight)
+        fr_n_weights_ch.append(fr_n_weight_ch)
+        fr_n_weights_grad_ch.append(fr_n_weight_grad_ch)
+
+        fr_n_biases.append(fr_n_bias)
+        fr_n_biases_ch.append(fr_n_bias_ch)
+        fr_n_biases_grad_ch.append(fr_n_bias_grad_ch)
 
     # return iterations, weights, weight_grad, biases, bias_grad
-    return iterations[1:], fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch, fr_n_biases, fr_n_biases_ch, fr_n_biases_grad_ch
+    return iterations, fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch, fr_n_biases, fr_n_biases_ch, fr_n_biases_grad_ch

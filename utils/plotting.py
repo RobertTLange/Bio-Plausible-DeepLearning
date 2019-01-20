@@ -63,7 +63,7 @@ def plot_learning(its, train_acc, val_acc,
             plt.plot(its_temp[sm_window-1:], val_loss_temp,
                      c=CB_color_cycle[i*2+1], label=labels[i*2+1])
             plt.xlabel('Data Points')
-            plt.ylabel('Loss')
+            plt.ylabel('Cross-Entropy Loss')
             plt.xticks(its_ticks, its_labels)
             plt.legend(loc=1, fontsize=8)
 
@@ -128,35 +128,39 @@ def plot_labels(X, y, labels, save_fname=None):
     plt.show()
 
 
-def plot_weight_dev(its, l_id, fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch,
-                    title='Learning Dynamics and Convergence of Optimization',
-                    save_fname=None):
+def plot_weight_dev(its, l_id, fr_n_weights,
+                    fr_n_weights_ch, fr_n_weights_grad_ch,
+                    title, sub_titles, labels, save_fname=None):
 
-    its_ticks = np.arange(100000, np.max(its[2]), 100000)
+    its_ticks = np.arange(100000, np.max(its[2][0]), 100000)
     its_labels_temp = [str(int(it/100000)) for it in its_ticks]
     its_labels = [it_l + r"$\times 10^5$" for it_l in its_labels_temp]
     its_labels[0] = r"$10^5$"
 
     fig, axs = plt.subplots(3, 3, figsize=(10, 8), dpi=200, sharey='row')
     fig.suptitle(title, fontsize=18)
-    data_labels = ["MNIST", "Fashion-MNIST", "CIFAR-10"]
 
-    for i in range(len(fr_n_weights)):
-        axs[0, i].plot(its[i], fr_n_weights[i][l_id], label="DNN - Backprop")
+    for i in range(3):
+        for j in range(len(fr_n_weights[i])):
+            axs[0, i].plot(its[i][j], fr_n_weights[i][j][l_id],
+                           label=labels[j])
         axs[0, i].set_ylabel(r"$||W_{t}||_F$", fontsize=15)
         axs[0, i].legend()
-        axs[0, i].set_title(data_labels[i])
+        axs[0, i].set_title(sub_titles[i])
         axs[0, i].set_xticks(its_ticks)
         axs[0, i].set_xticklabels([])
 
-        axs[1, i].plot(its[i], fr_n_weights_ch[i][l_id], label="DNN - Backprop")
+        for j in range(len(fr_n_weights[i])):
+            axs[1, i].plot(its[i][j], fr_n_weights_ch[i][j][l_id],
+                           label=labels[j])
         axs[1, i].set_ylabel(r"$\frac{||W_{t} - W_{t-1}||_F}{||W_{t-1}||_F}$",
                              fontsize=15)
         axs[1, i].set_xticks(its_ticks)
         axs[1, i].set_xticklabels([])
         axs[1, i].legend()
-
-        axs[2, i].plot(its[i], fr_n_weights_grad_ch[i][l_id], label="DNN - Backprop")
+        for j in range(len(fr_n_weights[i])):
+            axs[2, i].plot(its[i][j], fr_n_weights_grad_ch[i][j][l_id],
+                           label=labels[j])
         axs[2, i].set_ylabel(r"$\frac{||\nabla W_{t+1} - \nabla W_{t}||_F}{||\nabla W_{t}||_F}$", fontsize=15)
         axs[2, i].set_xticks(its_ticks)
         axs[2, i].set_xticklabels(its_labels)
