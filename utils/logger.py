@@ -248,3 +248,126 @@ def process_logger_weights(log_fnames):
 
     # return iterations, weights, weight_grad, biases, bias_grad
     return iterations, fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch, fr_n_biases, fr_n_biases_ch, fr_n_biases_grad_ch
+
+
+class CompDNN_Logger():
+    def __init__(self, log_dir, log_fname):
+        self.save_fname = log_dir + log_fname
+        # Init empty lists to store results in
+        self.iterations = []
+        self.train_losses = []
+        self.val_losses = []
+        self.train_accs = []
+        self.val_accs = []
+
+    def update(self, its, train_loss, val_loss,
+               train_acc, val_acc):
+        self.iterations.append(its)
+        self.train_losses.append(train_loss)
+        self.val_losses.append(val_loss)
+        self.train_accs.append(train_acc)
+        self.val_accs.append(val_acc)
+        self.dump_data()
+
+    def dump_data(self):
+        with open(self.save_fname, 'wb') as fp:
+            pickle.dump(self.iterations, fp)
+            pickle.dump(self.train_losses, fp)
+            pickle.dump(self.val_losses, fp)
+            pickle.dump(self.train_accs, fp)
+            pickle.dump(self.val_accs, fp)
+        return
+
+
+class Weight_CompDNN_Logger():
+    def __init__(self, log_dir, wlog_fname, layer_ids):
+        self.save_fname = log_dir + wlog_fname
+        # Init empty lists to store results in
+        self.iterations = []
+        self.weights = {key: [] for key in layer_ids}
+        self.weight_gradients = {key: [] for key in layer_ids}
+        self.fr_n_weights = {key: [] for key in layer_ids}
+        self.fr_n_weights_ch = {key: [] for key in layer_ids}
+        self.fr_n_weights_grad_ch = {key: [] for key in layer_ids}
+
+    def update(self, its, weights, weight_gradients):
+        self.iterations.append(its)
+
+        for l_id in range(len(weights)):
+            if len(self.iterations) > 1:
+                self.compute_stats(l_id, weights[l_id],
+                                   weight_gradients[l_id])
+
+            self.weights[l_id] = weights[l_id].copy()
+            self.weight_gradients[l_id] = weight_gradients[l_id].copy()
+        self.dump_data()
+
+    def compute_stats(self, l_id, temp_param, temp_grad_param):
+        temp_param_new = temp_param.copy()
+        temp_grad_param_new = temp_grad_param.copy()
+
+        temp_param_old = self.weights[l_id]
+        temp_grad_param_old = self.weight_gradients[l_id]
+
+        fr_n_param = np.linalg.norm(temp_param_new)
+        fr_n_ch = np.linalg.norm(temp_param_new - temp_param_old)/np.linalg.norm(temp_param_old)
+
+        fr_n_grad_ch = np.linalg.norm(temp_grad_param_new - temp_grad_param_old)/np.linalg.norm(temp_grad_param_old)
+
+        self.fr_n_weights[l_id].append(fr_n_param)
+        self.fr_n_weights_ch[l_id].append(fr_n_ch)
+        self.fr_n_weights_grad_ch[l_id].append(fr_n_grad_ch)
+
+        print(self.fr_n_weights_grad_ch[l_id])
+
+    def dump_data(self):
+        with open(self.save_fname, 'wb') as fp:
+            pickle.dump(self.iterations, fp)
+            pickle.dump(self.fr_n_weights, fp)
+            pickle.dump(self.fr_n_weights_ch, fp)
+            pickle.dump(self.fr_n_weights_grad_ch, fp)
+        return
+
+
+def process_guergiev_logger(log_fnames, log_type):
+    if log_type == "performance":
+        iterations = []
+        train_losses = []
+        val_losses = []
+        train_accuracies = []
+        val_accuracies = []
+
+        for log_fname in log_fnames:
+            with open(log_fname, 'rb') as fp:
+                its = pickle.load(fp, encoding='latin1')
+                train_loss = pickle.load(fp, encoding='latin1')
+                val_loss = pickle.load(fp, encoding='latin1')
+                train_acc = pickle.load(fp, encoding='latin1')
+                val_acc = pickle.load(fp, encoding='latin1')
+
+            iterations.append(its)
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            train_accuracies.append(train_acc)
+            val_accuracies.append(val_acc)
+        # return iterations and performance measures
+        return iterations, train_losses, val_losses, train_accuracies, val_accuracies
+
+    elif log_type == "weights":
+        iterations = []
+        fr_n_weights = []
+        fr_n_weights_ch = []
+        fr_n_weights_grad_ch = []
+        for log_fname in log_fnames:
+            with open(log_fname, 'rb') as fp:
+                its = pickle.load(fp, encoding='latin1')
+                fr_n_weight = pickle.load(fp, encoding='latin1')
+                fr_n_weight_ch = pickle.load(fp, encoding='latin1')
+                fr_n_weight_grad_ch = pickle.load(fp, encoding='latin1')
+
+            iterations.append(its[1:])
+            fr_n_weights.append(fr_n_weight)
+            fr_n_weights_ch.append(fr_n_weight_ch)
+            fr_n_weights_grad_ch.append(fr_n_weight_grad_ch)
+        # return iterations, weights, weight_grad, biases, bias_grad
+        return iterations, fr_n_weights, fr_n_weights_ch, fr_n_weights_grad_ch

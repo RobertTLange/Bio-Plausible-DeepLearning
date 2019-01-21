@@ -19,8 +19,9 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import StratifiedKFold
 
 from utils.helpers import to_one_hot, prep_data_guergiev
+from utils.logger import CompDNN_Logger, Weight_CompDNN_Logger
+
 from models.CompDNN_hyperparameters import *
-from models.CompDNN_helpers import CompDNN_Logger, Weight_CompDNN_Logger
 
 
 def sigma(x):
@@ -413,9 +414,6 @@ class Network:
             self.x_hist = np.concatenate([self.x_hist[:, 1:],
                                           np.random.poisson(x)], axis=-1)
 
-            # calculate backprop angle at the end of the target phase
-            calc_E_bp = record_backprop_angle and time == l_t_phase - 1
-
             # do a target pass
             self.out_t()
 
@@ -575,6 +573,15 @@ class Network:
 
                 self.losses[k*self.num_train + n] = self.loss
 
+                # Sum together gradients over a 100 sample batch
+                if ((n+1) % log_freq == log_freq - 100) and logging:
+                    weight_gradients = {key: None for key in range(self.M)}
+                    for l_id in range(len(self.l)):
+                        weight_gradients[l_id] = self.l[l_id].delta_W.copy()
+                if ((n+1) % log_freq  > log_freq - 100) and logging:
+                    for l_id in range(len(self.l)):
+                        weight_gradients[l_id] += self.l[l_id].delta_W.copy()
+
                 if (n+1) % log_freq == 0 and logging:
                     template = "{}| epoch {:>2}| batch {:>2}/{:>2}|"
                     template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
@@ -604,9 +611,6 @@ class Network:
                                           train_loss, test_loss,
                                           train_acc, test_acc)
 
-                            weight_gradients = []
-                            for l_id in range(len(self.l)):
-                                weight_gradients.append(self.l[l_id].delta_W)
                             wlogger.update(self.current_epoch*self.num_train + n,
                                            self.W, weight_gradients)
 
@@ -824,17 +828,7 @@ class hiddenLayer(Layer):
         Update feedforward weights.
         '''
 
-        if not use_backprop:
-            self.E = (self.alpha_t - self.alpha_f)*-k_B*lambda_max*deriv_sigma(self.average_C_f)
-
-            if record_backprop_angle and not use_backprop and calc_E_bp:
-                self.E_bp = (np.dot(self.net.W[self.m+1].T, self.net.l[self.m+1].E_bp)*k_B*lambda_max*deriv_sigma(self.average_C_f))
-        else:
-            self.E_bp = (np.dot(self.net.W[self.m+1].T, self.net.l[self.m+1].E_bp)*k_B*lambda_max*deriv_sigma(self.average_C_f))
-            self.E = self.E_bp
-
-        if record_backprop_angle and (not use_backprop) and calc_E_bp:
-            self.delta_b_bp = self.E_bp
+        self.E = (self.alpha_t - self.alpha_f)*-k_B*lambda_max*deriv_sigma(self.average_C_f)
 
         self.delta_W = np.dot(self.E, self.average_PSP_B_f.T)
         self.net.W[self.m] += -self.net.f_etas[self.m]*P_hidden*self.delta_W
@@ -1078,9 +1072,6 @@ class finalLayer(Layer):
 
         self.E = (self.average_lambda_C_t - lambda_max*sigma(self.average_C_f))*-k_D*lambda_max*deriv_sigma(self.average_C_f)
 
-        if use_backprop or (record_backprop_angle and calc_E_bp):
-            self.E_bp = (self.average_lambda_C_t - lambda_max*sigma(self.average_C_f))*-k_D*lambda_max*deriv_sigma(self.average_C_f)
-
         self.delta_W = np.dot(self.E, self.average_PSP_B_f.T)
         self.net.W[self.m] += -self.net.f_etas[self.m]*P_final*self.delta_W
 
@@ -1198,3 +1189,63 @@ class finalLayer(Layer):
         elif phase == "target":
             self.average_C_t        = np.mean(self.C_hist, axis=-1)[:, np.newaxis]
             self.average_lambda_C_t = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
+
+
+def eval_comp_dnn(dataset, learning_rates, num_layers=2,
+             h_l_1=500, h_l_2=0, h_l_3=0, h_l_4=0, h_l_5=0, h_l_6=0,
+             num_epochs=5, k_fold=3, verbose=False):
+
+    if dataset == "mnist" or dataset == "fashion":
+        h_in = 784
+    elif dataset == "cifar10":
+        h_in = 32*32*3
+    h_sizes = [h_in, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
+
+    if verbose:
+        print("Dataset: {}".format(dataset))
+        print("Batchsize: {}".format(batch_size))
+        print("Learning Rate: {}".format(learning_rate))
+        print("Architecture of Cross-Validated Network:")
+        for i in range(len(h_sizes)):
+            print("\t Layer {}: {} Units".format(i, h_sizes[i]))
+
+    # Device configuration
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Initialize list to store cross_val accuracies
+    scores = []
+    # Load dataset
+    X, y = get_data(70000, dataset)
+
+    # Split original dataset into folds (return idx)
+    kf = StratifiedKFold(n_splits=k_fold, random_state=0)
+    kf.get_n_splits(X)
+    counter = 1
+
+    for sub_index, test_index in kf.split(X, y):
+        X_sub, X_test = X[sub_index], X[test_index]
+        y_sub, y_test = y[sub_index], y[test_index]
+
+        # Instantiate the model with layersize and Logging directory
+        dnn_model = DNN(h_sizes, out_size=10)
+        # Loss and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(dnn_model.parameters(), lr=learning_rate)
+
+        # Train the network
+        model = train_model_slim("dnn", dnn_model, num_epochs,
+                                 X_sub, y_sub, batch_size,
+                                 device, optimizer, criterion)
+
+        # Compute accuracy on hold-out set
+        score_temp = get_test_error("dnn", device, model, X_test, y_test)
+        scores.append(score_temp)
+
+        # Clean memory after eval!
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        if verbose:
+            print("Cross-Validation Score Fold {}: {}".format(counter,
+                                                              score_temp))
+            counter += 1
+    return np.mean(scores)

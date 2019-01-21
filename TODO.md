@@ -44,6 +44,7 @@
 * [ ] Check what is wrong with difference computations - weights not properly updates?
 * [ ] Write an eval_comp_dnn function
 * [ ] Optimize the code - run faster time it!
+* [ ] Run CNN and plot performance
 * [ ] Run BO pipeline for CNNs - figure out memory usage
 * [ ] Add a BO pipeline for guergiev
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
