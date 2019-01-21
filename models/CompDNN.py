@@ -18,7 +18,7 @@ from scipy.special import expit
 from sklearn.utils import shuffle
 from sklearn.model_selection import StratifiedKFold
 
-from utils.helpers import to_one_hot, prep_data_guergiev
+from utils.helpers import to_one_hot, prep_data_guergiev, get_data
 from utils.logger import CompDNN_Logger, Weight_CompDNN_Logger
 
 from models.CompDNN_hyperparameters import *
@@ -51,7 +51,7 @@ def shuffle_arrays(*args):
     return results
 
 
-class Network:
+class CompDNN:
     def __init__(self, n, X, y):
 
         if type(n) == int:
@@ -472,7 +472,7 @@ class Network:
                 # increase magnitude of surviving weights
                 self.Y[m] *= 5
 
-    def train(self, f_etas, b_etas, n_epochs, log_freq, verbose, logging):
+    def train(self, f_etas, b_etas, n_epochs, log_freq, verbose, logging, dataset):
         '''
         Train the network. Checkpoints will be saved at the end of every epoch if save_simulation is True.
 
@@ -494,9 +494,9 @@ class Network:
         '''
 
         if logging:
-            logger = CompDNN_Logger("logs", "/cifar10_guergiev_temp.pkl")
+            logger = CompDNN_Logger("logs", "/" + dataset + "_guergiev.pkl")
             wlogger = Weight_CompDNN_Logger("logs",
-                                            "/cifar10_guergiev_weights_temp.pkl",
+                                            "/" + dataset + "_guergiev_weights.pkl",
                                             list(np.arange(self.M)))
 
         if b_etas is None and update_feedback_weights:
@@ -706,6 +706,78 @@ class Network:
             self.l[m].clear_vars()
 
         return 1-err_rate/100, cross_ent_loss/n_test
+
+    def train_slim(self, f_etas, b_etas, n_epochs):
+        if b_etas is None and update_feedback_weights:
+            raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
+
+
+        self.current_epoch = 0
+        continuing = False
+
+        if use_rand_phase_lengths:
+            # generate phase lengths for all training examples
+            global l_f_phase, l_t_phase
+            l_f_phases = min_l_f_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
+            l_t_phases = min_l_t_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
+        else:
+            l_f_phases = np.zeros(n_epochs*self.num_train) + l_f_phase
+            l_t_phases = np.zeros(n_epochs*self.num_train) + l_t_phase
+
+        # get array of total length of both phases for all training examples
+        l_phases_tot = l_f_phases + l_t_phases
+
+        # set learning rate instance variables
+        self.f_etas = f_etas
+        self.b_etas = b_etas
+
+        self.losses = np.zeros(n_epochs*self.num_train)
+
+        self.plateau_times_full = [np.zeros((n_epochs*2*self.num_train, self.n[m])) for m in range(self.M)]
+        # initialize input spike history
+        self.x_hist = np.zeros((self.n_in, mem))
+
+        # start time used for timing how long each 1000 examples take
+
+
+        for k in range(n_epochs):
+            # shuffle the training data
+            self.X_train, self.y_train = shuffle_arrays(self.X_train, self.y_train)
+
+            # generate arrays of forward phase plateau potential times (time until plateau potential from start of forward phase) for individual neurons
+            if use_rand_plateau_times:
+                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
+            else:
+                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
+
+            # generate arrays of target phase plateau potential times (time until plateau potential from start of target phase) for individual neurons
+            if use_rand_plateau_times:
+                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
+            else:
+                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
+
+            for n in range(self.num_train):
+                if use_rand_phase_lengths:
+                    l_f_phase = int(l_f_phases[k*self.num_train + n])
+                    l_t_phase = int(l_t_phases[k*self.num_train + n])
+
+                l_phases_tot = l_f_phase + l_t_phase
+
+                # get training example data
+                self.x = lambda_max*self.X_train[:, n][:, np.newaxis]
+                self.t = self.y_train[:, n][:, np.newaxis]
+
+                # do forward & target phases
+                self.f_phase(self.x, None, n, training=True)
+                self.t_phase(self.x,
+                             self.t.repeat(self.n_neurons_per_category,
+                                           axis=0), n)
+
+
+                self.losses[k*self.num_train + n] = self.loss
+
+            # update latest epoch counter
+            self.current_epoch += 1
 
 
 class Layer:
@@ -1191,26 +1263,21 @@ class finalLayer(Layer):
             self.average_lambda_C_t = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
 
 
-def eval_comp_dnn(dataset, learning_rates, num_layers=2,
-             h_l_1=500, h_l_2=0, h_l_3=0, h_l_4=0, h_l_5=0, h_l_6=0,
-             num_epochs=5, k_fold=3, verbose=False):
+def eval_comp_dnn(dataset, f_etas, b_etas, num_layers=1,
+                  h_l_1=500, h_l_2=0, h_l_3=0, h_l_4=0, h_l_5=0, h_l_6=0,
+                  num_epochs=5, k_fold=3, verbose=False):
 
-    if dataset == "mnist" or dataset == "fashion":
-        h_in = 784
-    elif dataset == "cifar10":
-        h_in = 32*32*3
-    h_sizes = [h_in, h_l_1, h_l_2, h_l_3, h_l_4, h_l_5, h_l_6][:(num_layers+1)]
+    h_sizes = [h_l_1, h_l_2, h_l_3,
+               h_l_4, h_l_5, h_l_6][:num_layers]
+    h_sizes = tuple(h_sizes + [10])
 
     if verbose:
         print("Dataset: {}".format(dataset))
-        print("Batchsize: {}".format(batch_size))
-        print("Learning Rate: {}".format(learning_rate))
+        print("Learning Rate Weights: {}".format(f_etas))
         print("Architecture of Cross-Validated Network:")
         for i in range(len(h_sizes)):
             print("\t Layer {}: {} Units".format(i, h_sizes[i]))
 
-    # Device configuration
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Initialize list to store cross_val accuracies
     scores = []
     # Load dataset
@@ -1226,23 +1293,12 @@ def eval_comp_dnn(dataset, learning_rates, num_layers=2,
         y_sub, y_test = y[sub_index], y[test_index]
 
         # Instantiate the model with layersize and Logging directory
-        dnn_model = DNN(h_sizes, out_size=10)
-        # Loss and optimizer
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(dnn_model.parameters(), lr=learning_rate)
-
-        # Train the network
-        model = train_model_slim("dnn", dnn_model, num_epochs,
-                                 X_sub, y_sub, batch_size,
-                                 device, optimizer, criterion)
-
+        comp_dnn_model = CompDNN(h_sizes, X_sub, y_sub)
+        comp_dnn_model.train_slim(f_etas, b_etas, num_epochs)
         # Compute accuracy on hold-out set
-        score_temp = get_test_error("dnn", device, model, X_test, y_test)
+        X_test, y_test = prep_data_guergiev(X_test, y_test)
+        score_temp, _ = comp_dnn_model.get_test_error(X_test, y_test)
         scores.append(score_temp)
-
-        # Clean memory after eval!
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
 
         if verbose:
             print("Cross-Validation Score Fold {}: {}".format(counter,

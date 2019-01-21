@@ -318,8 +318,6 @@ class Weight_CompDNN_Logger():
         self.fr_n_weights_ch[l_id].append(fr_n_ch)
         self.fr_n_weights_grad_ch[l_id].append(fr_n_grad_ch)
 
-        print(self.fr_n_weights_grad_ch[l_id])
-
     def dump_data(self):
         with open(self.save_fname, 'wb') as fp:
             pickle.dump(self.iterations, fp)

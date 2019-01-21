@@ -1,7 +1,7 @@
 """
 Meta-Hyperparameters
 """
-
+use_sparse_feedback = False # silence 80% of feedback weights
 nonspiking_mode = True  # Non-spiking mode (real-valued outputs)
 use_rand_phase_lengths = True  # use random phase lengths (Wald distr)
 use_rand_plateau_times = False  # sample time of each neuron's apical plateau
@@ -20,22 +20,6 @@ use_apical_conductance = False  # use attenuated conductance apical to soma
 use_weight_optimization = True  # attempt to optimize initial weights
 use_feedback_bias = False  # use biases in feedback paths
 initial_test = False  # Initial test on the test set prior to training
-
-"""
-Logging Hyperparameters
-"""
-record_backprop_angle = False  # angle b/w hidden l error/bp error signals
-record_loss = True  # record final layer loss during training
-record_training_error = True  # record training error during training
-record_training_labels = True  # record labels of img shown during training
-record_phase_times = False  # record phase transition times across training
-record_plateau_times = False  # record plateau potential times for each neuron
-record_voltages = False  # record voltages of neurons during training
-
-record_eigvals = False  # record maximum eigenvalues for Jacobians
-record_matrices = False  # record Jacobian product & weight product matrices
-plot_eigvals = False  # dynamically plot maximum eigenvalues for Jacobians
-weight_cmap = 'bone'  # color map to use for weight plotting
 
 """
 Integration Hyperparameters

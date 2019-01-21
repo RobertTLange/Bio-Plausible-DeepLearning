@@ -52,7 +52,7 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
     for _ in range(num_evals):
         tic = time.time()
         next_point = optimizer.suggest(utility)
-        next_point = check_next_point(next_point)
+        next_point = check_next_point(next_point, func_type)
 
         if func_type == "cnn":
             while invalid_kernel_size(next_point, 28):
@@ -98,11 +98,15 @@ def invalid_kernel_size(next_point, input_size):
     return False
 
 
-def check_next_point(next_point):
+def check_next_point(next_point, func_type):
     # Assert/Enforce that params have correct type (dicrete/continuous) for BO
-    for key in next_point.keys():
-        if key != "learning_rate":
-            next_point[key] = int(round(next_point[key]))
+    if func_type != "comp_dnn":
+        for key in next_point.keys():
+            if key != "learning_rate":
+                next_point[key] = int(round(next_point[key]))
+    else:
+        # TODO CHECK FOR BOOLEANS
+        next_point = 0
     return next_point
 
 
