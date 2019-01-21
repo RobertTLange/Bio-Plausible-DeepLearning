@@ -431,15 +431,15 @@ def get_accuracies_bo_log(log_fname):
             kfold_test_acc.append(iteration["target"])
     return kfold_test_acc
 
-#if __name__ == "__main__":
-    # get_data(num_samples=100, dataset="MNIST")
-    # data_dir = os.getcwd() + "/data"
-    # global data_dir
-    # download_data()
-    #
-    # get_mnist("original")
-    # get_mnist("fashion")
-    # load_cifar_10()
-    # get_data(70000, dataset="mnist")
-    # get_data(70000, dataset="fashion")
-    # get_data(60000, dataset="cifar10")
+if __name__ == "__main__":
+    get_data(num_samples=100, dataset="MNIST")
+    data_dir = os.getcwd() + "/data"
+    global data_dir
+    download_data()
+
+    get_mnist("original")
+    get_mnist("fashion")
+    load_cifar_10()
+    get_data(70000, dataset="mnist")
+    get_data(70000, dataset="fashion")
+    get_data(60000, dataset="cifar10")

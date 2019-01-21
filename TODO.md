@@ -37,10 +37,11 @@
     * [x] Delete random stuff
     * [x] Write a (weight)-logger module for Guergiev
     * [x] Write a get_test_error function for Guergiev
+    * [x] Change plots for all three model types
 
 ## TODO - CODING:
 
-* [ ] Change plots for all three model types
+* [ ] Check what is wrong with difference computations - weights not properly updates?
 * [ ] Write an eval_comp_dnn function
 * [ ] Optimize the code - run faster time it!
 * [ ] Run BO pipeline for CNNs - figure out memory usage
