@@ -17,12 +17,21 @@ from utils.helpers import init_weights, get_data, get_test_error, train_model, u
 import warnings
 warnings.filterwarnings("ignore")
 
+
 class CNN(nn.Module):
     def __init__(self, ch_sizes, k_sizes, stride, padding, out_size, verbose=False):
         super(CNN, self).__init__()
         self.layers = nn.ModuleList()
 
-        W_in = 28
+        """
+        Two relevant cases for our analysis:
+            1. 1 Channel - MNIST/Fashion = 28x28
+            2. 3 Channels - CIFAR-10 = 32x32 
+        """
+        if ch_sizes[0] == 1:
+            W_in = 28
+        elif ch_sizes[0] == 3:
+            W_in = 32
 
         for k in range(len(ch_sizes) - 1):
             self.layers.append(nn.Conv2d(in_channels=ch_sizes[k],
@@ -36,7 +45,7 @@ class CNN(nn.Module):
             self.layers.append(nn.ReLU())
             self.layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
             W_in = update_tensor_dim(W_in, 2, 0, 2)
-        self.layers.append(nn.Linear(W_in**2*ch_sizes[-1], out_size))
+        self.layers.append(nn.Linear(int(W_in**2*ch_sizes[-1]), int(out_size)))
         # Xavier initialization of first
         init_weights(self.layers)
         if verbose:

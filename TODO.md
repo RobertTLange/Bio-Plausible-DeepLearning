@@ -38,17 +38,16 @@
     * [x] Write a (weight)-logger module for Guergiev
     * [x] Write a get_test_error function for Guergiev
     * [x] Change plots for all three model types
+    * [x] Check what is wrong with difference computations - weights not properly updates?
+    * [x] Write an eval_comp_dnn function
 
 ## TODO - CODING:
 
-* [ ] Check what is wrong with difference computations - weights not properly updates?
-* [ ] Write an eval_comp_dnn function
 * [ ] Optimize the code - run faster time it!
+* [ ] Add a BO pipeline for guergiev
 * [ ] Run CNN and plot performance
 * [ ] Run BO pipeline for CNNs - figure out memory usage
-* [ ] Add a BO pipeline for guergiev
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
-* [ ] Figure out a way how to analyse robustness to specific hyperparam
 * [ ] Finalize plots
 
 ## TODO - REPORT/PRESENTATION:
