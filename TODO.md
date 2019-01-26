@@ -45,6 +45,8 @@
 
 * [ ] Optimize the code - run faster time it!
 * [ ] Add a BO pipeline for guergiev
+    * [ ] Load params from file
+    * [ ] Update check params function
 * [ ] Run CNN and plot performance
 * [ ] Run BO pipeline for CNNs - figure out memory usage
 * [ ] Add comments! - Look up pep8 standard for fcts/classes
@@ -54,11 +56,9 @@
 
 * [ ] Read papers/Add first notes of papers
     * [x] Lillicrap et al (2016)
-    * [ ] Guergiev et al (2017)
+    * [x] Guergiev et al (2017)
     * [x] Bartunov et al (2018)
     * [x] Sacramento et al (2018)
-    * [ ] Larkum (2013)
-    * [ ] Whittington, Bogacz (2017)
 * [ ] Add first skeleton of report/sections - max 10 pages
     * [x] Backprop/Notation
     * [ ] Literature Notes

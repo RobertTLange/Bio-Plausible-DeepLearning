@@ -18,31 +18,21 @@ from scipy.special import expit
 from sklearn.utils import shuffle
 from sklearn.model_selection import StratifiedKFold
 
-from utils.helpers import to_one_hot, prep_data_guergiev, get_data
+from utils.helpers import to_one_hot, prep_data_guergiev, get_data, load_guergiev_params
 from utils.logger import CompDNN_Logger, Weight_CompDNN_Logger
-
-from models.CompDNN_hyperparameters import *
 
 
 def sigma(x):
     return expit(x)
 
-
 def deriv_sigma(x):
     return expit(x)*(1.0 - expit(x))
 
-
-def kappa(x):
+def kappa(x, tau_L, tau_s):
     return (np.exp(-x/tau_L) - np.exp(-x/tau_s))/(tau_L - tau_s)
 
-
-def get_kappas(n):
-    return np.array([kappa(i+1) for i in range(n)])
-
-
-# Kernel filtering initialize kappas array
-kappas = np.flipud(get_kappas(mem))[:, np.newaxis]
-
+def get_kappas(n, tau_L, tau_s):
+    return np.array([kappa(i+1, tau_L, tau_s) for i in range(n)])
 
 def shuffle_arrays(*args):
     # Shuffle multiple arrays using the same random permutation.
@@ -52,12 +42,16 @@ def shuffle_arrays(*args):
 
 
 class CompDNN:
-    def __init__(self, n, X, y):
+    def __init__(self, X, y,
+                 param_fname="logs/comp_dnn_base_params.json"):
 
-        if type(n) == int:
-            n = (n,)
+        # Load in hyperparameters of the model
+        self.p = load_guergiev_params(param_fname)
 
-        self.n = n            # layer sizes - eg. (500, 100, 10)
+        n = [self.p["h_l_1"], self.p["h_l_2"],
+             self.p["h_l_3"], self.p["h_l_4"], self.p["h_l_5"],
+             self.p["h_l_6"]][:self.p["num_layers"]]
+        self.n = tuple(n + [10])
         self.M = len(self.n)  # number of layers
 
         self.n_neurons_per_category = int(self.n[-1]/10)
@@ -78,27 +72,35 @@ class CompDNN:
         self.n_in = self.X_train.shape[0]  # input size
         self.n_out = self.n[-1]            # output size
 
-        self.x_hist = np.zeros((self.n_in, mem))  # initialize input spike hist
+        self.x_hist = np.zeros((self.n_in, self.p["mem"]))  # initialize input spike hist
         self.current_epoch = None  # current epoch of simulation
 
+        # Kernel filtering initialize kappas array
+        self.kappas = np.flipud(get_kappas(self.p["mem"],
+                                           self.p["tau_L"],
+                                           self.p["tau_s"]))[:, np.newaxis]
+
+        # Initialize weights and layer instances
         self.init_weights()
         self.init_layers()
 
+
+
     def init_weights(self):
-        if use_weight_optimization:
+        if self.p["use_weight_optimization"]:
             # initial weight optimization parameters
             V_avg = 3  # average of dendritic potential
             V_sd = 3  # standard deviation of dendritic potential
             b_avg = 0.8  # desired average of bias
             b_sd = 0.001  # desired standard deviation of bias
-            nu = lambda_max*0.25  # slope of linear region of activation fct
+            nu = self.p["lambda_max"]*0.25  # slope of linear region of activation fct
             V_sm = V_sd**2 + V_avg**2  # second moment of dendritic potential
 
         # initialize lists of weight matrices & bias vectors
         self.W = [0]*self.M
         self.b = [0]*self.M
         self.Y = [0]*(self.M-1)
-        if use_feedback_bias:
+        if self.p["use_feedback_bias"]:
             self.c = [0]*(self.M-1)
 
         for m in range(self.M-1, -1, -1):
@@ -109,7 +111,7 @@ class CompDNN:
                 N = self.n_in
 
             # generate feedforward weights & biases
-            if use_weight_optimization:
+            if self.p["use_weight_optimization"]:
                 # calc weight vars needed to get desired avg & sd of somatic p.
                 W_avg = (V_avg - b_avg)/(nu*N*V_avg)
                 W_sm = (V_sm + (nu**2)*(N - N**2)*(W_avg**2)*(V_avg**2) - 2*N*nu*b_avg*V_avg*W_avg - (b_avg**2))/(N*(nu**2)*V_sm)
@@ -122,33 +124,33 @@ class CompDNN:
                 self.b[m] = 1.0*np.random.uniform(-1, 1, size=(self.n[m], 1))
 
             if m != 0:
-                if use_broadcast:
-                    if use_weight_optimization:
+                if self.p["use_broadcast"]:
+                    if self.p["use_weight_optimization"]:
                         self.Y[m-1] = W_avg + 3.465*W_sd*np.random.uniform(-1, 1, size=(N, self.n[-1]))
 
-                        if use_feedback_bias:
+                        if self.p["use_feedback_bias"]:
                             self.c[m-1] = b_avg + 3.465*b_sd*np.random.uniform(-1, 1, size=(N, 1))
                     else:
                         self.Y[m-1] = np.random.uniform(-1, 1, size=(N, self.n[-1]))
 
-                        if use_feedback_bias:
+                        if self.p["use_feedback_bias"]:
                             self.c[m-1] = np.random.uniform(-1, 1, size=(N, 1))
                 else:
-                    if use_weight_optimization:
+                    if self.p["use_weight_optimization"]:
                         self.Y[m-1] = W_avg + 3.465*W_sd*np.random.uniform(-1, 1, size=(N, self.n[m]))
 
-                        if use_feedback_bias:
+                        if self.p["use_feedback_bias"]:
                             self.c[m-1] = b_avg + 3.465*b_sd*np.random.uniform(-1, 1, size=(N, 1))
                     else:
                         self.Y[m-1] = np.random.uniform(-1, 1, size=(N, self.n[m]))
 
-                        if use_feedback_bias:
+                        if self.p["use_feedback_bias"]:
                             self.c[m-1] = np.random.uniform(-1, 1, size=(N, 1))
 
-        if use_symmetric_weights is True:  # enforce symmetric weights
+        if self.p["use_symmetric_weights"] is True:  # enforce symm weights
             self.make_weights_symmetric()
 
-        if use_sparse_feedback:
+        if self.p["use_sparse_feedback"]:
             # Dropout weights, increase magnitude of remaining to keep avg Volt
             self.Y_dropout_indices = [0]*(self.M-1)
             for m in range(self.M-1):
@@ -159,37 +161,37 @@ class CompDNN:
 
     def make_weights_symmetric(self):
         # Feedback weights = Transposes feedforward weights
-        if use_broadcast:
+        if self.p["use_broadcast"]:
             for m in range(self.M-2, -1, -1):
                 # make a copy if we're altering the feedback weights after
-                if use_sparse_feedback:
+                if self.p["use_sparse_feedback"]:
                     W_above = self.W[m+1].T.copy()
                 else:
                     W_above = self.W[m+1].T
 
                 if m == self.M - 2:
                     # for final hidden l - feedforward weights of output l
-                    if noisy_symmetric_weights:
+                    if self.p["noisy_symmetric_weights"]:
                         self.Y[m] = W_above + np.random.normal(0, 0.05,
                                                                size=W_above.shape)
                     else:
                         self.Y[m] = W_above
                 else:
                     # for other hidden l - prod of all feedf weights downstream
-                    if noisy_symmetric_weights:
+                    if self.p["noisy_symmetric_weights"]:
                         self.Y[m] = np.dot(W_above + np.random.normal(0, 0.05, size=W_above.shape), self.Y[m+1])
                     else:
                         self.Y[m] = np.dot(W_above, self.Y[m+1])
         else:
             for m in range(self.M-2, -1, -1):
                 # make a copy if we're altering the feedback weights after
-                if use_sparse_feedback:
+                if self.p["use_sparse_feedback"]:
                     W_above = self.W[m+1].T.copy()
                 else:
                     W_above = self.W[m+1].T
 
                 # use feedforward weights of the layer downstream
-                if noisy_symmetric_weights:
+                if self.p["noisy_symmetric_weights"]:
                     self.Y[m] = W_above + np.random.normal(0, 0.05)
                 else:
                     self.Y[m] = W_above
@@ -198,30 +200,36 @@ class CompDNN:
         # Initialize layers list and create all layers
         self.l = []
         if self.M == 1:
-            self.l.append(finalLayer(net=self, m=-1, f_input_size=self.n_in))
+            self.l.append(finalLayer(net=self, m=-1, f_input_size=self.n_in,
+                                     params=self.p))
         else:
-            if use_broadcast:
+            if self.p["use_broadcast"]:
                 self.l.append(hiddenLayer(net=self, m=0,
                                           f_input_size=self.n_in,
-                                          b_input_size=self.n[-1]))
+                                          b_input_size=self.n[-1],
+                                          params=self.p))
                 for m in range(1, self.M-1):
                     self.l.append(hiddenLayer(net=self, m=m,
                                               f_input_size=self.n[m-1],
-                                              b_input_size=self.n[-1]))
+                                              b_input_size=self.n[-1],
+                                              params=self.p))
             else:
                 self.l.append(hiddenLayer(net=self, m=0,
                                           f_input_size=self.n_in,
-                                          b_input_size=self.n[1]))
+                                          b_input_size=self.n[1],
+                                          params=self.p))
                 for m in range(1, self.M-1):
                     self.l.append(hiddenLayer(net=self, m=m,
                                               f_input_size=self.n[m-1],
-                                              b_input_size=self.n[m+1]))
+                                              b_input_size=self.n[m+1],
+                                              params=self.p))
             self.l.append(finalLayer(net=self, m=self.M-1,
-                                     f_input_size=self.n[-2]))
+                                     f_input_size=self.n[-2],
+                                     params=self.p))
 
     def out_f(self, training=False):
         # Perform a forward phase pass through the network.
-        if use_spiking_feedforward:
+        if self.p["use_spiking_feedforward"]:
             x = self.x_hist
         else:
             x = self.x
@@ -229,19 +237,19 @@ class CompDNN:
         if self.M == 1:
             self.l[0].out_f(x, None)
         else:
-            if use_broadcast:
-                if use_spiking_feedback:
+            if self.p["use_broadcast"]:
+                if self.p["use_spiking_feedback"]:
                     self.l[0].out_f(x, self.l[-1].S_hist)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_f(self.l[m-1].S_hist,
                                             self.l[-1].S_hist)
                         else:
                             self.l[m].out_f(self.l[m-1].lambda_C,
                                             self.l[-1].S_hist)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_f(self.l[-2].S_hist, None)
                     else:
                         self.l[-1].out_f(self.l[-2].lambda_C, None)
@@ -249,30 +257,30 @@ class CompDNN:
                     self.l[0].out_f(x, self.l[-1].lambda_C)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_f(self.l[m-1].S_hist,
                                             self.l[-1].lambda_C)
                         else:
                             self.l[m].out_f(self.l[m-1].lambda_C,
                                             self.l[-1].lambda_C)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_f(self.l[-2].S_hist, None)
                     else:
                         self.l[-1].out_f(self.l[-2].lambda_C, None)
             else:
-                if use_spiking_feedback:
+                if self.p["use_spiking_feedback"]:
                     self.l[0].out_f(x, self.l[1].S_hist)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_f(self.l[m-1].S_hist,
                                             self.l[m+1].S_hist)
                         else:
                             self.l[m].out_f(self.l[m-1].lambda_C,
                                             self.l[m+1].S_hist)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_f(self.l[-2].S_hist, None)
                     else:
                         self.l[-1].out_f(self.l[-2].lambda_C, None)
@@ -280,21 +288,21 @@ class CompDNN:
                     self.l[0].out_f(x, self.l[1].lambda_C)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_f(self.l[m-1].S_hist,
                                             self.l[m+1].lambda_C)
                         else:
                             self.l[m].out_f(self.l[m-1].lambda_C,
                                             self.l[m+1].lambda_C)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_f(self.l[-2].S_hist, None)
                     else:
                         self.l[-1].out_f(self.l[-2].lambda_C, None)
 
     def out_t(self):
         # Perform a target phase pass through net - target introduced at top l
-        if use_spiking_feedforward:
+        if self.p["use_spiking_feedforward"]:
             x = self.x_hist
         else:
             x = self.x
@@ -302,19 +310,19 @@ class CompDNN:
         if self.M == 1:
             self.l[0].out_t(x, self.t)
         else:
-            if use_broadcast:
-                if use_spiking_feedback:
+            if self.p["use_broadcast"]:
+                if self.p["use_spiking_feedback"]:
                     self.l[0].out_t(x, self.l[-1].S_hist)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_t(self.l[m-1].S_hist,
                                             self.l[-1].S_hist)
                         else:
                             self.l[m].out_t(self.l[m-1].lambda_C,
                                             self.l[-1].S_hist)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_t(self.l[-2].S_hist, self.t)
                     else:
                         self.l[-1].out_t(self.l[-2].lambda_C, self.t)
@@ -322,30 +330,30 @@ class CompDNN:
                     self.l[0].out_t(x, self.l[-1].lambda_C)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_t(self.l[m-1].S_hist,
                                             self.l[-1].lambda_C)
                         else:
                             self.l[m].out_t(self.l[m-1].lambda_C,
                                             self.l[-1].lambda_C)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_t(self.l[-2].S_hist, self.t)
                     else:
                         self.l[-1].out_t(self.l[-2].lambda_C, self.t)
             else:
-                if use_spiking_feedback:
+                if self.p["use_spiking_feedback"]:
                     self.l[0].out_t(x, self.l[1].S_hist)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_t(self.l[m-1].S_hist,
                                             self.l[m+1].S_hist)
                         else:
                             self.l[m].out_t(self.l[m-1].lambda_C,
                                             self.l[m+1].S_hist)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_t(self.l[-2].S_hist, self.t)
                     else:
                         self.l[-1].out_t(self.l[-2].lambda_C, self.t)
@@ -353,14 +361,14 @@ class CompDNN:
                     self.l[0].out_t(x, self.l[1].lambda_C)
 
                     for m in range(1, self.M-1):
-                        if use_spiking_feedforward:
+                        if self.p["use_spiking_feedforward"]:
                             self.l[m].out_t(self.l[m-1].S_hist,
                                             self.l[m+1].lambda_C)
                         else:
                             self.l[m].out_t(self.l[m-1].lambda_C,
                                             self.l[m+1].lambda_C)
 
-                    if use_spiking_feedforward:
+                    if self.p["use_spiking_feedforward"]:
                         self.l[-1].out_t(self.l[-2].S_hist, self.t)
                     else:
                         self.l[-1].out_t(self.l[-2].lambda_C, self.t)
@@ -376,25 +384,17 @@ class CompDNN:
             training (bool)    : Whether the network is in training (True) or testing (False) mode.
         '''
 
-        for time in range(l_f_phase):
+        for time in range(self.p["l_f_phase"]):
             # update input spike history
             self.x_hist = np.concatenate([self.x_hist[:, 1:], np.random.poisson(x)], axis=-1)
 
             # do a forward pass
             self.out_f(training=training)
 
-            if use_rand_plateau_times and training:
-                # calculate plateau potentials for hidden layer neurons
-                for m in range(self.M-2, -1, -1):
-                    plateau_indices = np.nonzero(time == self.plateau_times_f[m][training_num])
-
-                    self.l[m].plateau_f(plateau_indices=plateau_indices)
-
-        if (not use_rand_plateau_times) or (not training):
-            for m in range(self.M-2, -1, -1):
-                plateau_indices = np.arange(self.n[m])
-                # calculate plateau potentials for hidden layer neurons
-                self.l[m].plateau_f(plateau_indices=plateau_indices)
+        for m in range(self.M-2, -1, -1):
+            plateau_indices = np.arange(self.n[m])
+            # calculate plateau potentials for hidden layer neurons
+            self.l[m].plateau_f(plateau_indices=plateau_indices)
 
         for m in range(self.M-1, -1, -1):
             self.l[m].calc_averages(phase="forward")
@@ -409,7 +409,7 @@ class CompDNN:
             training_num (int) : Number (from start of the epoch) of the training example being shown.
         '''
 
-        for time in range(l_t_phase):
+        for time in range(self.p["l_t_phase"]):
             # update input history
             self.x_hist = np.concatenate([self.x_hist[:, 1:],
                                           np.random.poisson(x)], axis=-1)
@@ -417,32 +417,24 @@ class CompDNN:
             # do a target pass
             self.out_t()
 
-            if use_rand_plateau_times:
-                # calculate plateau potentials & perform weight updates
-                for m in range(self.M-2, -1, -1):
-                    plateau_indices = np.nonzero(time == self.plateau_times_t[m][training_num])
+        for m in range(self.M-2, -1, -1):
+            plateau_indices = np.arange(self.n[m])
 
-                    self.l[m].plateau_t(plateau_indices=plateau_indices)
-
-        if not use_rand_plateau_times:
-            for m in range(self.M-2, -1, -1):
-                plateau_indices = np.arange(self.n[m])
-
-                # calculate plateau potentials for hidden layer neurons
-                self.l[m].plateau_t(plateau_indices=plateau_indices)
+            # calculate plateau potentials for hidden layer neurons
+            self.l[m].plateau_t(plateau_indices=plateau_indices)
 
         for m in range(self.M-1, -1, -1):
             # calculate averages
             self.l[m].calc_averages(phase="target")
 
-            if update_feedback_weights and m < self.M-1:
+            if self.p["update_feedback_weights"] and m < self.M-1:
                 # update feedback weights
                 self.l[m].update_Y()
 
             # update weights
             self.l[m].update_W()
 
-        self.loss = ((self.l[-1].average_lambda_C_t - lambda_max*sigma(self.l[-1].average_C_f)) ** 2).mean()
+        self.loss = ((self.l[-1].average_lambda_C_t - self.p["lambda_max"]*sigma(self.l[-1].average_C_f)) ** 2).mean()
 
         for m in range(self.M-1, -1, -1):
             # reset averages
@@ -457,14 +449,14 @@ class CompDNN:
                 self.l[m].average_A_f *= 0
                 self.l[m].average_A_t *= 0
                 self.l[m].average_lambda_C_f *= 0
-                if update_feedback_weights:
+                if self.p["update_feedback_weights"]:
                     self.l[m].average_PSP_A_f *= 0
 
-        if use_symmetric_weights:
+        if self.p["use_symmetric_weights"]:
             # make feedback weights symmetric to new feedforward weights
             self.make_weights_symmetric()
 
-        if use_sparse_feedback and (use_symmetric_weights or update_feedback_weights):
+        if self.p["use_sparse_feedback"] and (self.p["use_symmetric_weights"] or self.p["update_feedback_weights"]):
             for m in range(self.M-1):
                 # zero out the inactive weights
                 self.Y[m].ravel()[self.Y_dropout_indices[m]] = 0
@@ -472,7 +464,7 @@ class CompDNN:
                 # increase magnitude of surviving weights
                 self.Y[m] *= 5
 
-    def train(self, f_etas, b_etas, n_epochs, log_freq, verbose, logging, dataset):
+    def train(self, n_epochs, log_freq, verbose, logging, dataset):
         '''
         Train the network. Checkpoints will be saved at the end of every epoch if save_simulation is True.
 
@@ -499,69 +491,52 @@ class CompDNN:
                                             "/" + dataset + "_guergiev_weights.pkl",
                                             list(np.arange(self.M)))
 
-        if b_etas is None and update_feedback_weights:
+        if self.p["b_etas"] is None and self.p["update_feedback_weights"]:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
 
 
         self.current_epoch = 0
         continuing = False
 
-        if use_rand_phase_lengths:
-            # generate phase lengths for all training examples
-            global l_f_phase, l_t_phase
-            l_f_phases = min_l_f_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
-            l_t_phases = min_l_t_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
-        else:
-            l_f_phases = np.zeros(n_epochs*self.num_train) + l_f_phase
-            l_t_phases = np.zeros(n_epochs*self.num_train) + l_t_phase
+        l_f_phases = np.zeros(n_epochs*self.num_train) + self.p["l_f_phase"]
+        l_t_phases = np.zeros(n_epochs*self.num_train) + self.p["l_t_phase"]
 
         # get array of total length of both phases for all training examples
         l_phases_tot = l_f_phases + l_t_phases
 
         # set learning rate instance variables
-        self.f_etas = f_etas
-        self.b_etas = b_etas
-
+        self.f_etas = tuple(self.M*[self.p["f_etas"]])
+        self.b_etas = tuple(self.M*[self.p["b_etas"]])
 
         self.losses = np.zeros(n_epochs*self.num_train)
 
         self.plateau_times_full = [np.zeros((n_epochs*2*self.num_train, self.n[m])) for m in range(self.M)]
         # initialize input spike history
-        self.x_hist = np.zeros((self.n_in, mem))
+        self.x_hist = np.zeros((self.n_in, self.p["mem"]))
 
         # start time used for timing how long each 1000 examples take
         start_time = None
-
 
         for k in range(n_epochs):
             # shuffle the training data
             self.X_train, self.y_train = shuffle_arrays(self.X_train, self.y_train)
 
             # generate arrays of forward phase plateau potential times (time until plateau potential from start of forward phase) for individual neurons
-            if use_rand_plateau_times:
-                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
-            else:
-                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
+            self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
             # generate arrays of target phase plateau potential times (time until plateau potential from start of target phase) for individual neurons
-            if use_rand_plateau_times:
-                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
-            else:
-                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
+
+            self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
             for n in range(self.num_train):
                 # set start time
                 if start_time == None:
                     start_time = time.time()
 
-                if use_rand_phase_lengths:
-                    l_f_phase = int(l_f_phases[k*self.num_train + n])
-                    l_t_phase = int(l_t_phases[k*self.num_train + n])
-
-                l_phases_tot = l_f_phase + l_t_phase
+                l_phases_tot = self.p["l_f_phase"] + self.p["l_t_phase"]
 
                 # get training example data
-                self.x = lambda_max*self.X_train[:, n][:, np.newaxis]
+                self.x = self.p["lambda_max"]*self.X_train[:, n][:, np.newaxis]
                 self.t = self.y_train[:, n][:, np.newaxis]
 
                 # do forward & target phases
@@ -626,20 +601,15 @@ class CompDNN:
         Arguments:
             n_test (int) : The number of test examples to use.
         '''
-
-        global l_f_phase, integration_time
-
         # save old length of forward phase
-        old_l_f_phase = l_f_phase
-
+        old_l_f_phase = self.p["l_f_phase"]
         # set new length of forward phase
-        l_f_phase = l_f_phase_test
+        self.p["l_f_phase"] = self.p["l_f_phase_test"]
 
         # save old integration time
-        old_integration_time = integration_time
-
+        old_integration_time = self.p["integration_time"]
         # set new integration time
-        integration_time = integration_time_test
+        self.p["integration_time"] = self.p["integration_time_test"]
 
         old_x_hist = self.x_hist
 
@@ -666,7 +636,7 @@ class CompDNN:
             self.x_hist *= 0
 
             # get testing example data
-            self.x = lambda_max*X_temp[:, n][:, np.newaxis]
+            self.x = self.p["lambda_max"]*X_temp[:, n][:, np.newaxis]
             self.t = y_temp[:, n][:, np.newaxis]
 
             # do a forward phase & get the unit with maximum average somatic potential
@@ -693,9 +663,8 @@ class CompDNN:
         if old_x_hist is not None:
             self.x_hist = old_x_hist
 
-        integration_time = old_integration_time
-
-        l_f_phase = old_l_f_phase
+        self.p["integration_time"] = old_integration_time
+        self.p["l_f_phase"] = old_l_f_phase
 
         # create new integration recording variables
         for m in range(self.M):
@@ -708,21 +677,15 @@ class CompDNN:
         return 1-err_rate/100, cross_ent_loss/n_test
 
     def train_slim(self, f_etas, b_etas, n_epochs):
-        if b_etas is None and update_feedback_weights:
+        if b_etas is None and self.p["update_feedback_weights"]:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
 
 
         self.current_epoch = 0
         continuing = False
 
-        if use_rand_phase_lengths:
-            # generate phase lengths for all training examples
-            global l_f_phase, l_t_phase
-            l_f_phases = min_l_f_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
-            l_t_phases = min_l_t_phase + np.random.wald(2, 1, n_epochs*self.num_train).astype(int)
-        else:
-            l_f_phases = np.zeros(n_epochs*self.num_train) + l_f_phase
-            l_t_phases = np.zeros(n_epochs*self.num_train) + l_t_phase
+        l_f_phases = np.zeros(n_epochs*self.num_train) + l_f_phase
+        l_t_phases = np.zeros(n_epochs*self.num_train) + l_t_phase
 
         # get array of total length of both phases for all training examples
         l_phases_tot = l_f_phases + l_t_phases
@@ -745,26 +708,17 @@ class CompDNN:
             self.X_train, self.y_train = shuffle_arrays(self.X_train, self.y_train)
 
             # generate arrays of forward phase plateau potential times (time until plateau potential from start of forward phase) for individual neurons
-            if use_rand_plateau_times:
-                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
-            else:
-                self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
+
+            self.plateau_times_f = [np.zeros((self.num_train, self.n[m])) + l_f_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
             # generate arrays of target phase plateau potential times (time until plateau potential from start of target phase) for individual neurons
-            if use_rand_plateau_times:
-                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 - np.minimum(np.abs(np.random.normal(0, 3, size=(self.num_train, self.n[m])).astype(int)), 5) for m in range(self.M)]
-            else:
-                self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
+            self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
             for n in range(self.num_train):
-                if use_rand_phase_lengths:
-                    l_f_phase = int(l_f_phases[k*self.num_train + n])
-                    l_t_phase = int(l_t_phases[k*self.num_train + n])
-
                 l_phases_tot = l_f_phase + l_t_phase
 
                 # get training example data
-                self.x = lambda_max*self.X_train[:, n][:, np.newaxis]
+                self.x = self.p["lambda_max"]*self.X_train[:, n][:, np.newaxis]
                 self.t = self.y_train[:, n][:, np.newaxis]
 
                 # do forward & target phases
@@ -805,7 +759,7 @@ class Layer:
 
 
 class hiddenLayer(Layer):
-    def __init__(self, net, m, f_input_size, b_input_size):
+    def __init__(self, net, m, f_input_size, b_input_size, params):
         '''
         Initialize the hidden layer.
 
@@ -819,6 +773,7 @@ class hiddenLayer(Layer):
 
         Layer.__init__(self, net, m)
 
+        self.params = params
         self.f_input_size = f_input_size
         self.b_input_size = b_input_size
 
@@ -827,7 +782,7 @@ class hiddenLayer(Layer):
         self.C = np.zeros((self.size, 1))
         self.lambda_C = np.zeros((self.size, 1))
 
-        self.S_hist = np.zeros((self.size, mem), dtype=np.int8)
+        self.S_hist = np.zeros((self.size, self.params["mem"]), dtype=np.int8)
 
         self.E = np.zeros((self.size, 1))
         self.delta_W = np.zeros(self.net.W[self.m].shape)
@@ -840,7 +795,7 @@ class hiddenLayer(Layer):
         self.average_A_t = np.zeros((self.size, 1))
         self.average_lambda_C_f = np.zeros((self.size, 1))
         self.average_PSP_B_f = np.zeros((self.f_input_size, 1))
-        if update_feedback_weights:
+        if params["update_feedback_weights"]:
             self.average_PSP_A_f = np.zeros((self.b_input_size, 1))
 
         self.alpha_f = np.zeros((self.size, 1))
@@ -853,11 +808,12 @@ class hiddenLayer(Layer):
         self.create_integration_vars()
 
     def create_integration_vars(self):
-        self.A_hist = np.zeros((self.size, integration_time))
-        self.PSP_A_hist = np.zeros((self.b_input_size, integration_time))
-        self.PSP_B_hist = np.zeros((self.f_input_size, integration_time))
-        self.C_hist = np.zeros((self.size, integration_time))
-        self.lambda_C_hist = np.zeros((self.size, integration_time))
+        self.A_hist = np.zeros((self.size, self.params["integration_time"]))
+        self.PSP_A_hist = np.zeros((self.b_input_size, self.params["integration_time"]))
+        self.PSP_B_hist = np.zeros((self.f_input_size, self.params["integration_time"]))
+        self.C_hist = np.zeros((self.size, self.params["integration_time"]))
+        self.lambda_C_hist = np.zeros((self.size,
+                                       self.params["integration_time"]))
 
     def clear_vars(self):
         '''
@@ -887,7 +843,7 @@ class hiddenLayer(Layer):
         self.average_A_t *= 0
         self.average_lambda_C_f *= 0
         self.average_PSP_B_f *= 0
-        if update_feedback_weights:
+        if self.params["update_feedback_weights"]:
             self.average_PSP_A_f *= 0
 
         self.alpha_f *= 0
@@ -900,25 +856,25 @@ class hiddenLayer(Layer):
         Update feedforward weights.
         '''
 
-        self.E = (self.alpha_t - self.alpha_f)*-k_B*lambda_max*deriv_sigma(self.average_C_f)
+        self.E = (self.alpha_t - self.alpha_f)*-self.params["k_B"]*self.params["lambda_max"]*deriv_sigma(self.average_C_f)
 
         self.delta_W = np.dot(self.E, self.average_PSP_B_f.T)
-        self.net.W[self.m] += -self.net.f_etas[self.m]*P_hidden*self.delta_W
+        self.net.W[self.m] += -self.net.f_etas[self.m]*self.params["P_hidden"]*self.delta_W
 
         self.delta_b = self.E
-        self.net.b[self.m] += -self.net.f_etas[self.m]*P_hidden*self.delta_b
+        self.net.b[self.m] += -self.net.f_etas[self.m]*self.params["P_hidden"]*self.delta_b
 
     def update_Y(self):
         '''
         Update feedback weights.
         '''
 
-        E_inv = (lambda_max*sigma(self.average_C_f) - self.alpha_f)*-deriv_sigma(self.average_A_f)
+        E_inv = (self.params["lambda_max"]*sigma(self.average_C_f) - self.alpha_f)*-deriv_sigma(self.average_A_f)
 
         self.delta_Y        = np.dot(E_inv, self.average_PSP_A_f.T)
         self.net.Y[self.m] += -self.net.b_etas[self.m]*self.delta_Y
 
-        if use_feedback_bias:
+        if self.params["use_feedback_bias"]:
             self.delta_c        = E_inv
             self.net.c[self.m] += -self.net.b_etas[self.m]*self.delta_c
 
@@ -930,18 +886,18 @@ class hiddenLayer(Layer):
             b_input (ndarray) : Feedback input.
         '''
 
-        if use_spiking_feedback:
-            self.PSP_A = np.dot(b_input, kappas)
+        if self.params["use_spiking_feedback"]:
+            self.PSP_A = np.dot(b_input, self.kappas)
         else:
             self.PSP_A = b_input
 
-        self.PSP_A_hist[:, self.integration_counter % integration_time] = self.PSP_A[:, 0]
+        self.PSP_A_hist[:, self.integration_counter % self.params["integration_time"]] = self.PSP_A[:, 0]
 
-        if use_feedback_bias:
+        if self.params["use_feedback_bias"]:
             self.A = np.dot(self.net.Y[self.m], self.PSP_A) + self.net.c[self.m]
         else:
             self.A = np.dot(self.net.Y[self.m], self.PSP_A)
-        self.A_hist[:, self.integration_counter % integration_time] = self.A[:, 0]
+        self.A_hist[:, self.integration_counter % self.params["integration_time"]] = self.A[:, 0]
 
     def update_B(self, f_input):
         '''
@@ -951,12 +907,12 @@ class hiddenLayer(Layer):
             f_input (ndarray) : Feedforward input.
         '''
 
-        if use_spiking_feedforward:
-            self.PSP_B = np.dot(f_input, kappas)
+        if self.params["use_spiking_feedforward"]:
+            self.PSP_B = np.dot(f_input, self.kappas)
         else:
             self.PSP_B = f_input
 
-        self.PSP_B_hist[:, self.integration_counter % integration_time] = self.PSP_B[:, 0]
+        self.PSP_B_hist[:, self.integration_counter % self.params["integration_time"]] = self.PSP_B[:, 0]
 
         self.B = np.dot(self.net.W[self.m], self.PSP_B) + self.net.b[self.m]
 
@@ -965,19 +921,19 @@ class hiddenLayer(Layer):
         Update somatic potentials & calculate firing rates.
         '''
 
-        if use_conductances:
-            if use_apical_conductance:
-                self.C_dot = -g_L*self.C + g_B*(self.B - self.C) + g_A*(self.A - self.C)
+        if self.params["use_conductances"]:
+            if self.params["use_apical_conductance"]:
+                self.C_dot = -self.params["g_L"]*self.C + self.params["g_B"]*(self.B - self.C) + self.params["g_A"]*(self.A - self.C)
             else:
-                self.C_dot = -g_L*self.C + g_B*(self.B - self.C)
-            self.C += self.C_dot*dt
+                self.C_dot = -self.params["g_L"]*self.C + self.params["g_B"]*(self.B - self.C)
+            self.C += self.C_dot*self.params["dt"]
         else:
-            self.C = k_B*self.B
+            self.C = self.params["k_B"]*self.B
 
-        self.C_hist[:, self.integration_counter % integration_time] = self.C[:, 0]
+        self.C_hist[:, self.integration_counter % self.params["integration_time"]] = self.C[:, 0]
 
-        self.lambda_C = lambda_max*sigma(self.C)
-        self.lambda_C_hist[:, self.integration_counter % integration_time] = self.lambda_C[:, 0]
+        self.lambda_C = self.params["lambda_max"]*sigma(self.C)
+        self.lambda_C_hist[:, self.integration_counter % self.params["integration_time"]] = self.lambda_C[:, 0]
 
     def out_f(self, f_input, b_input):
         '''
@@ -993,7 +949,7 @@ class hiddenLayer(Layer):
         self.update_C()
         self.spike()
 
-        self.integration_counter = (self.integration_counter + 1) % integration_time
+        self.integration_counter = (self.integration_counter + 1) % self.params["integration_time"]
 
     def out_t(self, f_input, b_input):
         '''
@@ -1009,7 +965,7 @@ class hiddenLayer(Layer):
         self.update_C()
         self.spike()
 
-        self.integration_counter = (self.integration_counter + 1) % integration_time
+        self.integration_counter = (self.integration_counter + 1) % self.params["integration_time"]
 
     def plateau_f(self, plateau_indices):
         '''
@@ -1053,13 +1009,13 @@ class hiddenLayer(Layer):
             self.average_lambda_C_f = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
             self.average_PSP_B_f    = np.mean(self.PSP_B_hist, axis=-1)[:, np.newaxis]
 
-            if update_feedback_weights:
+            if self.params["update_feedback_weights"]:
                 self.average_PSP_A_f = np.mean(self.PSP_A_hist, axis=-1)[:, np.newaxis]
         elif phase == "target":
             self.average_C_t        = np.mean(self.C_hist, axis=-1)[:, np.newaxis]
             self.average_lambda_C_t = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
 
-            if update_feedback_weights:
+            if self.params["update_feedback_weights"]:
                 self.average_PSP_A_t = np.mean(self.PSP_A_hist, axis=-1)[:, np.newaxis]
 
 """
@@ -1067,7 +1023,7 @@ NOTE: In the paper, we denote the output layer's somatic & dendritic potentials
       as U and V. Here, we use C & B purely in order to simplify the code.
 """
 class finalLayer(Layer):
-    def __init__(self, net, m, f_input_size):
+    def __init__(self, net, m, f_input_size, params):
         '''
         Initialize the final layer.
 
@@ -1080,6 +1036,7 @@ class finalLayer(Layer):
 
         Layer.__init__(self, net, m)
 
+        self.params = params
         self.f_input_size = f_input_size
 
         self.B = np.zeros((self.size, 1))
@@ -1087,7 +1044,7 @@ class finalLayer(Layer):
         self.C = np.zeros((self.size, 1))
         self.lambda_C = np.zeros((self.size, 1))
 
-        self.S_hist = np.zeros((self.size, mem), dtype=np.int8)
+        self.S_hist = np.zeros((self.size, self.params["mem"]), dtype=np.int8)
 
         self.E = np.zeros((self.size, 1))
         self.delta_W = np.zeros(self.net.W[self.m].shape)
@@ -1106,9 +1063,9 @@ class finalLayer(Layer):
         self.create_integration_vars()
 
     def create_integration_vars(self):
-        self.PSP_B_hist = np.zeros((self.f_input_size, integration_time))
-        self.C_hist = np.zeros((self.size, integration_time))
-        self.lambda_C_hist = np.zeros((self.size, integration_time))
+        self.PSP_B_hist = np.zeros((self.f_input_size, self.params["integration_time"]))
+        self.C_hist = np.zeros((self.size, self.params["integration_time"]))
+        self.lambda_C_hist = np.zeros((self.size, self.params["integration_time"]))
 
     def clear_vars(self):
         '''
@@ -1142,13 +1099,13 @@ class finalLayer(Layer):
         Update feedforward weights.
         '''
 
-        self.E = (self.average_lambda_C_t - lambda_max*sigma(self.average_C_f))*-k_D*lambda_max*deriv_sigma(self.average_C_f)
+        self.E = (self.average_lambda_C_t - self.params["lambda_max"]*sigma(self.average_C_f))*-self.params["k_D"]*self.params["lambda_max"]*deriv_sigma(self.average_C_f)
 
         self.delta_W = np.dot(self.E, self.average_PSP_B_f.T)
-        self.net.W[self.m] += -self.net.f_etas[self.m]*P_final*self.delta_W
+        self.net.W[self.m] += -self.net.f_etas[self.m]*self.params["P_final"]*self.delta_W
 
         self.delta_b = self.E
-        self.net.b[self.m] += -self.net.f_etas[self.m]*P_final*self.delta_b
+        self.net.b[self.m] += -self.net.f_etas[self.m]*self.params["P_final"]*self.delta_b
 
     def update_B(self, f_input):
         '''
@@ -1158,12 +1115,12 @@ class finalLayer(Layer):
             f_input (ndarray) : Feedforward input.
         '''
 
-        if use_spiking_feedforward:
-            self.PSP_B = np.dot(f_input, kappas)
+        if self.params["use_spiking_feedforward"]:
+            self.PSP_B = np.dot(f_input, self.kappas)
         else:
             self.PSP_B = f_input
 
-        self.PSP_B_hist[:, self.integration_counter % integration_time] = self.PSP_B[:, 0]
+        self.PSP_B_hist[:, self.integration_counter % self.params["integration_time"]] = self.PSP_B[:, 0]
 
         self.B = np.dot(self.net.W[self.m], self.PSP_B) + self.net.b[self.m]
 
@@ -1181,12 +1138,12 @@ class finalLayer(Layer):
         else:
             g_E = b_input
             g_I = -g_E + 1
-            if use_conductances:
-                self.I = g_E*(E_E - self.C) + g_I*(E_I - self.C)
+            if self.params["use_conductances"]:
+                self.I = g_E*(self.params["E_E"] - self.C) + g_I*(self.p["E_I"] - self.C)
             else:
-                self.k_D2 = g_D/(g_L + g_D + g_E + g_I)
-                self.k_E = g_E/(g_L + g_D + g_E + g_I)
-                self.k_I = g_I/(g_L + g_D + g_E + g_I)
+                self.k_D2 = self.params["g_D"]/(self.params["g_L"] + self.params["g_D"] + g_E + g_I)
+                self.k_E = g_E/(self.params["g_L"] + self.params["g_D"] + g_E + g_I)
+                self.k_I = g_I/(self.params["g_L"] + self.params["g_D"] + g_E + g_I)
 
     def update_C(self, phase):
         '''
@@ -1196,22 +1153,22 @@ class finalLayer(Layer):
             phase (string) : Current phase of the network, "forward" or "target".
         '''
 
-        if use_conductances:
+        if self.params["use_conductances"]:
             if phase == "forward":
-                self.C_dot = -g_L*self.C + g_D*(self.B - self.C)
+                self.C_dot = -self.params["g_L"]*self.C + g_D*(self.B - self.C)
             elif phase == "target":
-                self.C_dot = -g_L*self.C + g_D*(self.B - self.C) + self.I
-            self.C += self.C_dot*dt
+                self.C_dot = -self.params["g_L"]*self.C + g_D*(self.B - self.C) + self.I
+            self.C += self.C_dot*self.params["dt"]
         else:
             if phase == "forward":
-                self.C = k_D*self.B
+                self.C = self.params["k_D"]*self.B
             elif phase == "target":
-                self.C = self.k_D2*self.B + self.k_E*E_E + self.k_I*E_I
+                self.C = self.k_D2*self.B + self.k_E*self.params["E_E"] + self.k_I*self.params["E_I"]
 
-        self.C_hist[:, self.integration_counter % integration_time] = self.C[:, 0]
+        self.C_hist[:, self.integration_counter % self.params["integration_time"]] = self.C[:, 0]
 
-        self.lambda_C = lambda_max*sigma(self.C)
-        self.lambda_C_hist[:, self.integration_counter % integration_time] = self.lambda_C[:, 0]
+        self.lambda_C = self.params["lambda_max"]*sigma(self.C)
+        self.lambda_C_hist[:, self.integration_counter % self.params["integration_time"]] = self.lambda_C[:, 0]
 
     def out_f(self, f_input, b_input):
         '''
@@ -1227,7 +1184,7 @@ class finalLayer(Layer):
         self.update_C(phase="forward")
         self.spike()
 
-        self.integration_counter = (self.integration_counter + 1) % integration_time
+        self.integration_counter = (self.integration_counter + 1) % self.params["integration_time"]
 
     def out_t(self, f_input, b_input):
         '''
@@ -1243,7 +1200,7 @@ class finalLayer(Layer):
         self.update_C(phase="target")
         self.spike()
 
-        self.integration_counter = (self.integration_counter + 1) % integration_time
+        self.integration_counter = (self.integration_counter + 1) % self.params["integration_time"]
 
     def calc_averages(self, phase):
         '''
@@ -1263,13 +1220,7 @@ class finalLayer(Layer):
             self.average_lambda_C_t = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
 
 
-def eval_comp_dnn(dataset, f_etas, b_etas, num_layers=1,
-                  h_l_1=500, h_l_2=0, h_l_3=0, h_l_4=0, h_l_5=0, h_l_6=0,
-                  num_epochs=5, k_fold=3, verbose=False):
-
-    h_sizes = [h_l_1, h_l_2, h_l_3,
-               h_l_4, h_l_5, h_l_6][:num_layers]
-    h_sizes = tuple(h_sizes + [10])
+def eval_comp_dnn(dataset, param_fname, verbose=False):
 
     if verbose:
         print("Dataset: {}".format(dataset))
@@ -1293,7 +1244,7 @@ def eval_comp_dnn(dataset, f_etas, b_etas, num_layers=1,
         y_sub, y_test = y[sub_index], y[test_index]
 
         # Instantiate the model with layersize and Logging directory
-        comp_dnn_model = CompDNN(h_sizes, X_sub, y_sub)
+        comp_dnn_model = CompDNN(X_sub, y_sub, param_fname)
         comp_dnn_model.train_slim(f_etas, b_etas, num_epochs)
         # Compute accuracy on hold-out set
         X_test, y_test = prep_data_guergiev(X_test, y_test)

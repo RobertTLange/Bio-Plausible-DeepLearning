@@ -19,6 +19,7 @@ from utils.logger import Logger, update_logger, WeightLogger
 
 global data_dir
 data_dir = os.getcwd() + "/data"
+
 """
 - Dataset specific helpers
     a. Download data from original sources if not already done
@@ -103,6 +104,7 @@ def load_mnist(path, kind='train'):
     with gzip.open(images_path, 'rb') as imgpath:
         images = np.frombuffer(imgpath.read(), dtype=np.uint8, offset=16).reshape(len(labels), 784)
     return images, labels
+
 
 def get_mnist(d_type):
     if d_type == "original":
@@ -417,8 +419,9 @@ def update_tensor_dim(W_in, k_size, padding, stride):
 
 
 """
-Post-Processing/Plotting helpers
+Others
 1. Load in accuracies from BO Log files
+2. Load hyperparams from json to dictionary
 """
 
 def get_accuracies_bo_log(log_fname):
@@ -434,15 +437,15 @@ def get_accuracies_bo_log(log_fname):
             kfold_test_acc.append(iteration["target"])
     return kfold_test_acc
 
-# if __name__ == "__main__":
-#     get_data(num_samples=100, dataset="MNIST")
-#     global data_dir
-#     data_dir = os.getcwd() + "/data"
-#     download_data()
-#
-#     get_mnist("original")
-#     get_mnist("fashion")
-#     load_cifar_10()
-#     get_data(70000, dataset="mnist")
-#     get_data(70000, dataset="fashion")
-#     get_data(60000, dataset="cifar10")
+
+def load_guergiev_params(param_fname):
+    with open(param_fname, "r") as j:
+        params = json.load(j)
+
+    params["g_D"] = params["g_B"]
+    params["k_B"] = params["g_B"]/(params["g_L"] + params["g_B"] + params["g_A"])
+    params["k_D"] = params["g_D"]/(params["g_L"] + params["g_D"])
+    params["k_I"] = 1.0/(params["g_L"] + params["g_D"])
+    params["P_hidden"] = 20.0/params["lambda_max"]
+    params["P_final"] = 20.0/(params["lambda_max"]**2)
+    return params

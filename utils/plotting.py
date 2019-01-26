@@ -65,7 +65,6 @@ def plot_learning(its, train_acc, val_acc,
             plt.xlabel('Data Points')
             plt.ylabel('Cross-Entropy Loss')
             plt.xticks(its_ticks, its_labels)
-            plt.legend(loc=1, fontsize=8)
 
 
 def plot_all_learning(its, train_accs, val_accs,
