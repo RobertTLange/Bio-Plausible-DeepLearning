@@ -452,7 +452,7 @@ def load_guergiev_params(param_fname):
     params["P_hidden"] = 20.0/params["lambda_max"]
     params["P_final"] = 20.0/(params["lambda_max"]**2)
     params["mem"] = int(1/params["dt"])
-    params["integration_time"] = params["l_f_phase"] - int(30/params["dt"])
-    params["integration_time_test"] = params["l_f_phase_test"] - int(30/params["dt"])
+    params["integration_time"] = 1
+    params["integration_time_test"] = 1
     params["lambda_max"] *= params["dt"]
     return params

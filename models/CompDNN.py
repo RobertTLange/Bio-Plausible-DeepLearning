@@ -42,8 +42,7 @@ def shuffle_arrays(*args):
 
 
 class CompDNN:
-    def __init__(self, X, y,
-                 param_fname="logs/comp_dnn_base_params.json"):
+    def __init__(self, X, y, param_fname="logs/comp_dnn_base_params.json"):
 
         # Load in hyperparameters of the model
         self.p = load_guergiev_params(param_fname)
@@ -1140,7 +1139,7 @@ class finalLayer(Layer):
             g_E = b_input
             g_I = -g_E + 1
             if self.params["use_conductances"]:
-                self.I = g_E*(self.params["E_E"] - self.C) + g_I*(self.p["E_I"] - self.C)
+                self.I = g_E*(self.params["E_E"] - self.C) + g_I*(self.params["E_I"] - self.C)
             else:
                 self.k_D2 = self.params["g_D"]/(self.params["g_L"] + self.params["g_D"] + g_E + g_I)
                 self.k_E = g_E/(self.params["g_L"] + self.params["g_D"] + g_E + g_I)
@@ -1156,9 +1155,9 @@ class finalLayer(Layer):
 
         if self.params["use_conductances"]:
             if phase == "forward":
-                self.C_dot = -self.params["g_L"]*self.C + g_D*(self.B - self.C)
+                self.C_dot = -self.params["g_L"]*self.C + self.params["g_D"]*(self.B - self.C)
             elif phase == "target":
-                self.C_dot = -self.params["g_L"]*self.C + g_D*(self.B - self.C) + self.I
+                self.C_dot = -self.params["g_L"]*self.C + self.params["g_D"]*(self.B - self.C) + self.I
             self.C += self.C_dot*self.params["dt"]
         else:
             if phase == "forward":
