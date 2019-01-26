@@ -442,10 +442,17 @@ def load_guergiev_params(param_fname):
     with open(param_fname, "r") as j:
         params = json.load(j)
 
+    # Complement parameters with functions of true variables
+    params["g_A"] = 0.05 if params["use_apical_conductance"] else 0
     params["g_D"] = params["g_B"]
+    params["g_L"] = 1./params["tau_L"]
     params["k_B"] = params["g_B"]/(params["g_L"] + params["g_B"] + params["g_A"])
     params["k_D"] = params["g_D"]/(params["g_L"] + params["g_D"])
     params["k_I"] = 1.0/(params["g_L"] + params["g_D"])
     params["P_hidden"] = 20.0/params["lambda_max"]
     params["P_final"] = 20.0/(params["lambda_max"]**2)
+    params["mem"] = int(1/params["dt"])
+    params["integration_time"] = params["l_f_phase"] - int(30/params["dt"])
+    params["integration_time_test"] = params["l_f_phase_test"] - int(30/params["dt"])
+    params["lambda_max"] *= params["dt"]
     return params

@@ -379,29 +379,92 @@ Segregated compartments generate local targets that act as credit assignment sig
 \end{figure}
 
 \subsection*{Bayesian Optimization Hyperparameter Spaces}
-\rob{Add hyperparameter spaces}
-\fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
-\noindent \textbf{MLP Hyperparameter Search Space:}
-\small{
-\begin{enumerate}
-	\item Layer 1
-\end{enumerate}}}}
+\rob{Add hyperparameter descriptions}
 
 \fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
-\noindent \textbf{CNN Hyperparameter Search Space:}
 \small{
-\begin{enumerate}
-	\item Layer 1
-\end{enumerate}}}}
+\begin{center}
+\begin{tabular}{ |p{3cm}||p{3cm}|p{6cm}| }
+ \hline
+ \multicolumn{3}{|c|}{\textbf{MLP Hyperparameter Search Space:}} \\
+ \hline
+Hyperparameter & Range & Description\\
+ \hline
+ Batchsize & Integer: $[10, 500]$ & Number of data points in mini-batch\\
+ Learning Rate & Float: $[0.0001, 0.05]$ & SGD learning rate\\
+ \# Hidden Layers & Integer: $[1, 6]$ & \\ 
+ \# Hidden Layer Units & Integer: $[30, 500]$ & \\ 
+ \hline
+\end{tabular}	
+\end{center}
+}}}
 
 \fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
-\noindent \textbf{\citet{guerguiev2017} Hyperparameter Search Space:}
 \small{
-\begin{enumerate}
-	\item Layer 1
-\end{enumerate}}}}
+\begin{center}
+\begin{tabular}{ |p{3cm}||p{3cm}|p{6cm}| }
+ \hline
+ \multicolumn{3}{|c|}{\textbf{CNN Hyperparameter Search Space:}} \\
+ \hline
+Hyperparameter & Range & Description\\
+ \hline
+ Batchsize & Integer: $[10, 500]$ & Number of data points in mini-batch\\
+ Learning Rate & Float: $[0.0001, 0.05]$ & SGD learning rate\\
+ \# Hidden Layers & Integer: $[1, 6]$ & \\ 
+ Channels & Integer: $[3, 64]$ & \\
+ Kernels & Integer: $[2, 10]$ & \\
+ Stride & Integer: $[1, 3]$ & \\
+ Padding & Integer: $[1, 3]$ & \\
+ \hline
+\end{tabular}	
+\end{center}
+}}}
+
+
+\fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
+\small{
+\begin{center}
+\begin{tabular}{ |p{3cm}||p{3cm}|p{6cm}| }
+ \hline
+ \multicolumn{3}{|c|}{\textbf{Compartmental DNN Hyperparameter Search Space:}} \\
+ \hline
+Hyperparameter & Range & Description\\
+ \hline
+Sparse Feedback & Boolean & Dropout 80\% of the weights\\
+Conductances & Boolean & Conductances between soma and dendrites\\
+Broadcast & Boolean & Feedback output to all hidden layers\\
+Spiking Feedback & Boolean & \\
+Spiking Feedforward & Boolean & \\
+Symmetric Weights  & Boolean & Enforce symmetry\\
+Noisy Symmetric W. & Boolean & Add noise to symmetric weights\\
+Update Feedback W. & Boolean & Sparse feedback weights\\
+Apical conductances & Boolean & Attenuated conductances apical to soma\\
+Weight Optimization & Boolean & Optimize initial weights\\
+Feedback Bias & Boolean & Biases in feedback weights\\
+$dt$  & Float: [0, 1]& Integration time step\\
+Spike Memory & Integer: $[0, 10]$ & \\
+Length Forward Train & Integer: $[2, 50]$ & \\
+Length Target Phase & Integer: $[2, 50]$ & \\
+Length Forward Test & Integer: $[50, 100]$ &\\
+$\lambda_{max}$ & Float: $[0.2, 0.5]$ & Max spike rate per time step\\
+$\tau_s$ & Float: $[1, 5]$ & Synaptic time constant \\
+$\tau_L$ & Float: $[7, 13]$ & Leak time constant \\
+$g_B$ & Float: $[0.3, 0.9]$ & Basal conductance \\
+$g_A$ & Float: $[0.02, 0.1]$ & Apical conductance \\
+$E_E$ & Float: $[5, 12]$ & Excitatory Reversal Potential \\
+$E_I$ & Float: $[-12, -5]$ & Inhibitory Reversal Potential \\
+Forward Learning R. & Float: $[0.01, 0.05]$ & SGD learning rate for forward weights\\
+Backward Learning R. & Float: $[0, 0.05]$ & SGD learning rate for backward weights\\
+ \# Hidden Layers & Integer: $[1, 6]$ & \\ 
+ \# Hidden Layer Units & Integer: $[30, 500]$ & \\ 
+ \hline
+\end{tabular}	
+\end{center}
+}}}
 
 \subsection*{Notes on Reproduction}
+
+Please clone the repository \url{https://github.com/RobertTLange/Bio-Plausible-DeepLearning} and follow the instructions outlined below:
 \rob{Update readme and make ready for submission}
 \input{readme}
 

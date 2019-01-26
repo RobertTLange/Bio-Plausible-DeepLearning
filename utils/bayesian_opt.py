@@ -57,16 +57,22 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
         if func_type == "cnn":
             while invalid_kernel_size(next_point, 28):
                 next_point = optimizer.suggest(utility)
-                next_point = check_next_point(next_point)
+                next_point = check_next_point(next_point, func_type)
 
-        # Add additional inputs to list - remove again from dict after fct call
-        next_point["num_epochs"] = num_epochs
-        next_point["k_fold"] = k_fold
-        next_point["dataset"] = dataset
-        target = eval_func(**next_point)
-        del next_point["num_epochs"]
-        del next_point["k_fold"]
-        del next_point["dataset"]
+        if func_type != "comp_dnn":
+            # Add additional inputs to list - remove from dict after fct call
+            next_point["num_epochs"] = num_epochs
+            next_point["k_fold"] = k_fold
+            next_point["dataset"] = dataset
+            target = eval_func(**next_point)
+            del next_point["num_epochs"]
+            del next_point["k_fold"]
+            del next_point["dataset"]
+        else:
+            with open('comp_dnn_params_temp.json', 'w') as fp:
+                json.dump(next_point, fp)
+            target = eval_func(dataset, 'comp_dnn_params_temp.json',
+                               num_epochs, k_fold)
 
         optimizer.register(params=next_point, target=target)
         time_t = time.time() - tic
@@ -105,8 +111,19 @@ def check_next_point(next_point, func_type):
             if key != "learning_rate":
                 next_point[key] = int(round(next_point[key]))
     else:
-        # TODO CHECK FOR BOOLEANS
-        next_point = 0
+        round_keys = ["use_sparse_feedback", "use_conductances",
+                      "use_broadcast", "use_spiking_feedback",
+                      "use_spiking_feedforward", "use_symmetric_weights",
+                      "noisy_symmetric_weights", "update_feedback_weights",
+                      "use_apical_conductance", "use_weight_optimization",
+                      "use_feedback_bias", "l_f_phase", "l_t_phase",
+                      "l_f_phase_test", "integration_time",
+                      "integration_time_test", "num_layers",
+                      "h_l_1", "h_l_2", "h_l_3", "h_l_4", "h_l_5", "h_l_6"]
+
+        for key in next_point.keys():
+            if key in round_keys:
+                next_point[key] = int(round(next_point[key]))
     return next_point
 
 

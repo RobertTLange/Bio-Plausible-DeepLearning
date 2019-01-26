@@ -491,7 +491,7 @@ class CompDNN:
                                             "/" + dataset + "_guergiev_weights.pkl",
                                             list(np.arange(self.M)))
 
-        if self.p["b_etas"] is None and self.p["update_feedback_weights"]:
+        if self.p["b_etas"] == 0 and self.p["update_feedback_weights"]:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
 
 
@@ -676,29 +676,30 @@ class CompDNN:
 
         return 1-err_rate/100, cross_ent_loss/n_test
 
-    def train_slim(self, f_etas, b_etas, n_epochs):
-        if b_etas is None and self.p["update_feedback_weights"]:
+    def train_slim(self, n_epochs):
+        if self.p["b_etas"] == 0 and self.p["update_feedback_weights"]:
             raise ValueError("No feedback learning rates provided, but 'update_feedback_weights' is True.")
 
 
         self.current_epoch = 0
         continuing = False
 
-        l_f_phases = np.zeros(n_epochs*self.num_train) + l_f_phase
-        l_t_phases = np.zeros(n_epochs*self.num_train) + l_t_phase
+        l_f_phases = np.zeros(n_epochs*self.num_train) + self.p["l_f_phase"]
+        l_t_phases = np.zeros(n_epochs*self.num_train) + self.p["l_t_phase"]
 
         # get array of total length of both phases for all training examples
         l_phases_tot = l_f_phases + l_t_phases
 
         # set learning rate instance variables
-        self.f_etas = f_etas
-        self.b_etas = b_etas
+        self.f_etas = tuple(self.M*[self.p["f_etas"]])
+        self.b_etas = tuple(self.M*[self.p["b_etas"]])
+
 
         self.losses = np.zeros(n_epochs*self.num_train)
 
         self.plateau_times_full = [np.zeros((n_epochs*2*self.num_train, self.n[m])) for m in range(self.M)]
         # initialize input spike history
-        self.x_hist = np.zeros((self.n_in, mem))
+        self.x_hist = np.zeros((self.n_in, self.p["mem"]))
 
         # start time used for timing how long each 1000 examples take
 
@@ -715,7 +716,7 @@ class CompDNN:
             self.plateau_times_t = [np.zeros((self.num_train, self.n[m])) + l_t_phases[k*self.num_train:(k+1)*self.num_train, np.newaxis] - 1 for m in range(self.M)]
 
             for n in range(self.num_train):
-                l_phases_tot = l_f_phase + l_t_phase
+                l_phases_tot = self.p["l_f_phase"] + self.p["l_t_phase"]
 
                 # get training example data
                 self.x = self.p["lambda_max"]*self.X_train[:, n][:, np.newaxis]
@@ -1220,15 +1221,16 @@ class finalLayer(Layer):
             self.average_lambda_C_t = np.mean(self.lambda_C_hist, axis=-1)[:, np.newaxis]
 
 
-def eval_comp_dnn(dataset, param_fname, verbose=False):
-
+def eval_comp_dnn(dataset, param_fname, num_epochs, k_fold, verbose=False):
     if verbose:
+        params = load_guergiev_params(param_fname)
         print("Dataset: {}".format(dataset))
-        print("Learning Rate Weights: {}".format(f_etas))
+        print("Learning Rate Weights: {}".format(params["f_etas"]))
         print("Architecture of Cross-Validated Network:")
-        for i in range(len(h_sizes)):
-            print("\t Layer {}: {} Units".format(i, h_sizes[i]))
-
+        for i in range(params["num_layers"]):
+            l_str = "h_l_" + str(i+1)
+            print("\t Layer {}: {} Units".format(i, params[l_str]))
+        print("\t Layer {}: 10 Units".format(params["num_layers"]))
     # Initialize list to store cross_val accuracies
     scores = []
     # Load dataset
@@ -1245,7 +1247,7 @@ def eval_comp_dnn(dataset, param_fname, verbose=False):
 
         # Instantiate the model with layersize and Logging directory
         comp_dnn_model = CompDNN(X_sub, y_sub, param_fname)
-        comp_dnn_model.train_slim(f_etas, b_etas, num_epochs)
+        comp_dnn_model.train_slim(num_epochs)
         # Compute accuracy on hold-out set
         X_test, y_test = prep_data_guergiev(X_test, y_test)
         score_temp, _ = comp_dnn_model.get_test_error(X_test, y_test)
