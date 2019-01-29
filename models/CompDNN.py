@@ -2,9 +2,6 @@
 
 from __future__ import print_function
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gs
 import copy
 import datetime
 import os
@@ -73,11 +70,6 @@ class CompDNN:
 
         self.x_hist = np.zeros((self.n_in, self.p["mem"]))  # initialize input spike hist
         self.current_epoch = None  # current epoch of simulation
-
-        # Kernel filtering initialize kappas array
-        self.kappas = np.flipud(get_kappas(self.p["mem"],
-                                           self.p["tau_L"],
-                                           self.p["tau_s"]))[:, np.newaxis]
 
         # Initialize weights and layer instances
         self.init_weights()
@@ -774,6 +766,10 @@ class hiddenLayer(Layer):
         Layer.__init__(self, net, m)
 
         self.params = params
+        # Kernel filtering initialize kappas array
+        self.kappas = np.flipud(get_kappas(self.params["mem"],
+                                           self.params["tau_L"],
+                                           self.params["tau_s"]))[:, np.newaxis]
         self.f_input_size = f_input_size
         self.b_input_size = b_input_size
 
@@ -1037,6 +1033,10 @@ class finalLayer(Layer):
         Layer.__init__(self, net, m)
 
         self.params = params
+        # Kernel filtering initialize kappas array
+        self.kappas = np.flipud(get_kappas(self.params["mem"],
+                                           self.params["tau_L"],
+                                           self.params["tau_s"]))[:, np.newaxis]
         self.f_input_size = f_input_size
 
         self.B = np.zeros((self.size, 1))
@@ -1063,9 +1063,11 @@ class finalLayer(Layer):
         self.create_integration_vars()
 
     def create_integration_vars(self):
-        self.PSP_B_hist = np.zeros((self.f_input_size, self.params["integration_time"]))
+        self.PSP_B_hist = np.zeros((self.f_input_size,
+                                    self.params["integration_time"]))
         self.C_hist = np.zeros((self.size, self.params["integration_time"]))
-        self.lambda_C_hist = np.zeros((self.size, self.params["integration_time"]))
+        self.lambda_C_hist = np.zeros((self.size,
+                                       self.params["integration_time"]))
 
     def clear_vars(self):
         '''

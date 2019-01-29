@@ -11,6 +11,7 @@ from bayes_opt.observer import JSONLogger
 # Import Network Architectures
 from models.DNN import eval_dnn
 from models.CNN import eval_cnn
+from models.CompDNN import eval_comp_dnn
 
 from utils.helpers import update_tensor_dim
 # Dont print depreciation warning
