@@ -72,7 +72,7 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
         else:
             with open(func_type + "_" + dataset + '_params_temp.json', 'w') as fp:
                 json.dump(next_point, fp)
-            target = eval_func(dataset, func_type + "_" + dataset + '_params_temp.json,
+            target = eval_func(dataset, func_type + "_" + dataset + '_params_temp.json',
                                num_epochs, k_fold)
 
         optimizer.register(params=next_point, target=target)
