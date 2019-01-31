@@ -6,6 +6,7 @@ import wget
 import time
 import pickle
 import numpy as np
+import math
 
 import torch
 import torch.nn as nn
@@ -212,10 +213,18 @@ def get_test_error(model_type, device, model, X_test, y_test):
         dims = list(X_test.shape)
         dim_flat = np.prod(dims)/X_test.shape[0]
         X_test = X_test.reshape(X_test.shape[0], int(dim_flat))
-    X_test = torch.tensor(X_test).to(device)
-    with torch.no_grad():
-        y_pred = model(X_test).cpu().numpy().argmax(1)
-    return accuracy_score(y_test, y_pred)
+
+    X_splits = np.array_split(X_test, 10)
+    y_splits = np.array_split(y_test, 10)
+    accuracies = []
+    for spl in range(10):
+        X_temp = torch.tensor(X_splits[spl]).to(device)
+        y_temp = y_splits[spl]
+        with torch.no_grad():
+            y_pred = model(X_temp).cpu().numpy().argmax(1)
+        acc_temp = accuracy_score(y_temp, y_pred)
+        accuracies.append(acc_temp)
+    return np.array(accuracies).mean()
 
 
 def report(verbose, loss, batch_sizes, y, y_proba, batch_cur,
@@ -246,6 +255,9 @@ def train_model_slim(model_type, model, num_epochs,
     elif model_type == "cnn":
         # No squeze here needed - keep full dimensionality
         X_train, y_train = (X, y)
+    
+    X_train = torch.tensor(X_train).to(device)
+    y_train = torch.tensor(y_train).to(device)
 
     dataset_train = torch.utils.data.TensorDataset(torch.tensor(X_train),
                                                    torch.tensor(y_train))
@@ -289,7 +301,7 @@ def train_model(model_type, model, num_epochs,
                                               y[idx_train],
                                               y[idx_valid])
 
-    X_train, X_valid, y_train, y_valid = torch.tensor(X_train).to, torch.tensor(X_valid), torch.tensor(y_train), torch.tensor(y_valid)
+    X_train, X_valid, y_train, y_valid = torch.tensor(X_train), torch.tensor(X_valid), torch.tensor(y_train), torch.tensor(y_valid)
 
     dataset_train = torch.utils.data.TensorDataset(X_train, y_train)
     dataset_valid = torch.utils.data.TensorDataset(X_valid, y_valid)
@@ -300,10 +312,9 @@ def train_model(model_type, model, num_epochs,
         X_train = X_train.reshape(X_train.shape[0], int(dim_flat))
         X_valid = X_valid.reshape(X_valid.shape[0], int(dim_flat))
 
-    X_train.to(device)
-    y_train.to(device)
-    X_valid.to(device)
-    y_valid.to(device)
+    X_valid = X_valid.to(device)
+    y_valid = y_valid.to(device)
+    y_train = y_train.to(device)
 
     batch_total = len(dataset_train)
 
@@ -319,8 +330,8 @@ def train_model(model_type, model, num_epochs,
                 dim_flat = np.prod(dims)/Xi.shape[0]
                 Xi = Xi.reshape(Xi.shape[0], int(dim_flat))
 
-            Xi.to(device)
-            yi.to(device)
+            Xi = Xi.to(device)
+            yi = yi.to(device)
 
             optimizer.zero_grad()
 
@@ -334,7 +345,16 @@ def train_model(model_type, model, num_epochs,
 
             if batch_cur % log_freq == 0:
                 tic = time.time()
-                y_pred = model(X_train)
+                y_pred = []
+
+                X_splits = np.array_split(X_train, 10)
+                for spl in range(10):
+                    X_temp = torch.tensor(X_splits[spl]).to(device)
+                    with torch.no_grad():
+                        y_pred_t = model(X_temp)
+                    y_pred.append(y_pred_t)
+                
+                y_pred = torch.cat(tuple(y_pred))
                 loss = criterion(y_pred, y_train)
                 toc = time.time()
 
@@ -383,8 +403,8 @@ def train_step(model_type, model, dataset,
             dim_flat = np.prod(dims)/Xi.shape[0]
             Xi = Xi.reshape(Xi.shape[0], int(dim_flat))
 
-        Xi.to(device)
-        yi.to(device)
+        Xi = Xi.to(device)
+        yi = yi.to(device)
 
         optimizer.zero_grad()
         y_pred = model(Xi)

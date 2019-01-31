@@ -56,7 +56,11 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
         next_point = check_next_point(next_point, func_type)
 
         if func_type == "cnn":
-            while invalid_kernel_size(next_point, 28):
+            if dataset != "cifar10":
+                dim_in = 28
+            else:
+                dim_in = 32 
+            while invalid_kernel_size(next_point, dim_in):
                 next_point = optimizer.suggest(utility)
                 next_point = check_next_point(next_point, func_type)
 
@@ -100,7 +104,8 @@ def invalid_kernel_size(next_point, input_size):
     for i in range(len(k_sizes)):
         W_in = update_tensor_dim(W_in, k_sizes[i], padding, stride)
         W_in = update_tensor_dim(W_in, 2, 0, 2)
-        if W_in <= 0:
+
+        if W_in <= 0 or not W_in.is_integer():
             return True
     return False
 
