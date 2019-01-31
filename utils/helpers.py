@@ -289,7 +289,7 @@ def train_model(model_type, model, num_epochs,
                                               y[idx_train],
                                               y[idx_valid])
 
-    X_train, X_valid, y_train, y_valid = torch.tensor(X_train), torch.tensor(X_valid), torch.tensor(y_train), torch.tensor(y_valid)
+    X_train, X_valid, y_train, y_valid = torch.tensor(X_train).to, torch.tensor(X_valid), torch.tensor(y_train), torch.tensor(y_valid)
 
     dataset_train = torch.utils.data.TensorDataset(X_train, y_train)
     dataset_valid = torch.utils.data.TensorDataset(X_valid, y_valid)
@@ -297,11 +297,13 @@ def train_model(model_type, model, num_epochs,
     if model_type == "dnn":
         dims = list(X_train.shape)
         dim_flat = np.prod(dims)/X_train.shape[0]
-        X_train, y_train = X_train.reshape(X_train.shape[0], int(dim_flat)), y_train
-        X_valid, y_valid = X_valid.reshape(X_valid.shape[0], int(dim_flat)), y_valid
-    elif model_type == "cnn":
-        X_train, y_train = X_train, y_train
-        X_valid, y_valid = X_valid, y_valid
+        X_train = X_train.reshape(X_train.shape[0], int(dim_flat))
+        X_valid = X_valid.reshape(X_valid.shape[0], int(dim_flat))
+
+    X_train.to(device)
+    y_train.to(device)
+    X_valid.to(device)
+    y_valid.to(device)
 
     batch_total = len(dataset_train)
 
@@ -312,12 +314,13 @@ def train_model(model_type, model, num_epochs,
                                                   batch_size=batch_size):
 
             if model_type == "dnn":
+                # Flatten the array for MLP training - otherwise keep dims
                 dims = list(Xi.shape)
                 dim_flat = np.prod(dims)/Xi.shape[0]
-                Xi, yi = Xi.reshape(Xi.shape[0],
-                                    int(dim_flat)).to(device), yi.to(device)
-            elif model_type == "cnn":
-                Xi, yi = Xi.to(device), yi.to(device)
+                Xi = Xi.reshape(Xi.shape[0], int(dim_flat))
+
+            Xi.to(device)
+            yi.to(device)
 
             optimizer.zero_grad()
 
@@ -378,9 +381,11 @@ def train_step(model_type, model, dataset,
         if model_type == "dnn":
             dims = list(Xi.shape)
             dim_flat = np.prod(dims)/Xi.shape[0]
-            Xi, yi = Xi.reshape(Xi.shape[0], int(dim_flat)).to(device), yi.to(device)
-        elif model_type == "cnn":
-            Xi, yi = Xi.to(device), yi.to(device)
+            Xi = Xi.reshape(Xi.shape[0], int(dim_flat))
+
+        Xi.to(device)
+        yi.to(device)
+
         optimizer.zero_grad()
         y_pred = model(Xi)
         loss = criterion(y_pred, yi)
@@ -405,8 +410,7 @@ def valid_step(model_type, model, X_valid, y_valid,
 
     model.eval()
     tic = time.time()
-    X_valid.to(device)
-    y_valid.to(device)
+
     with torch.no_grad():
         y_pred = model(X_valid)
         loss = criterion(y_pred, y_valid)
@@ -429,6 +433,7 @@ Others
 1. Load in accuracies from BO Log files
 2. Load hyperparams from json to dictionary
 """
+
 
 def get_accuracies_bo_log(log_fname):
     kfold_test_acc = []
