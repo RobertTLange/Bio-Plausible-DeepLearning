@@ -25,6 +25,8 @@ data_dir = os.getcwd() + "/data"
     a. Download data from original sources if not already done
     b. Load the data in
 """
+
+
 def download_data():
     # Check if data is in directory - if not download from urls
     root_dir = os.getcwd()
@@ -33,7 +35,7 @@ def download_data():
     # Define url from which to get data
     mnist_base = 'http://yann.lecun.com/exdb/mnist/'
     fashion_base = 'http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/'
-    url_ext = ['train-images-idx3-ubyte.gz','train-labels-idx1-ubyte.gz',
+    url_ext = ['train-images-idx3-ubyte.gz', 'train-labels-idx1-ubyte.gz',
                't10k-images-idx3-ubyte.gz', 't10k-labels-idx1-ubyte.gz']
     cifar_url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
 
@@ -84,7 +86,7 @@ def get_data(num_samples, dataset="mnist"):
     if dataset == "mnist" or dataset == "fashion":
         X = X.astype('float32').reshape(-1, 1, 28, 28)
     elif dataset == "cifar10":
-        X= X.astype('float32').reshape(-1, 3, 32, 32)
+        X = X.astype('float32').reshape(-1, 3, 32, 32)
     y = y.astype('int64')
     X, y = shuffle(X, y)
     X, y = X[:num_samples], y[:num_samples]
@@ -222,7 +224,7 @@ def report(verbose, loss, batch_sizes, y, y_proba, batch_cur,
     template += " acc: {:.4f}| loss: {:.4f}| time: {:.2f}"
     # loss = np.average(losses, weights=batch_sizes)
     y_pred = np.argmax(y_proba, axis=1)
-    acc = accuracy_score(y, y_pred)
+    acc = accuracy_score(y.cpu(), y_pred)
 
     if verbose:
         print(template.format(
@@ -265,6 +267,7 @@ def train_model(model_type, model, num_epochs,
                 model_fname="temp_model_dnn",
                 verbose=True, logging=True):
 
+    model.to(device)
     if logging:
         logger = Logger('./logs')
         if model_type == "dnn":
@@ -288,31 +291,31 @@ def train_model(model_type, model, num_epochs,
 
     X_train, X_valid, y_train, y_valid = torch.tensor(X_train), torch.tensor(X_valid), torch.tensor(y_train), torch.tensor(y_valid)
 
-    dataset_train = torch.utils.data.TensorDataset(torch.tensor(X_train),
-                                                   torch.tensor(y_train))
-    dataset_valid = torch.utils.data.TensorDataset(torch.tensor(X_valid),
-                                                   torch.tensor(y_valid))
+    dataset_train = torch.utils.data.TensorDataset(X_train, y_train)
+    dataset_valid = torch.utils.data.TensorDataset(X_valid, y_valid)
 
     if model_type == "dnn":
         dims = list(X_train.shape)
         dim_flat = np.prod(dims)/X_train.shape[0]
-        X_train, y_train = X_train.reshape(X_train.shape[0], int(dim_flat)).to(device), y_train.to(device)
-        X_valid, y_valid = X_valid.reshape(X_valid.shape[0], int(dim_flat)).to(device), y_valid.to(device)
+        X_train, y_train = X_train.reshape(X_train.shape[0], int(dim_flat)), y_train
+        X_valid, y_valid = X_valid.reshape(X_valid.shape[0], int(dim_flat)), y_valid
     elif model_type == "cnn":
-        X_train, y_train = X_train.to(device), y_train.to(device)
-        X_valid, y_valid = X_valid.to(device), y_valid.to(device)
+        X_train, y_train = X_train, y_train
+        X_valid, y_valid = X_valid, y_valid
 
     batch_total = len(dataset_train)
 
     for epoch in range(num_epochs):
         model.train()
         batch_cur = 0
-        for Xi, yi in torch.utils.data.DataLoader(dataset_train, batch_size=batch_size):
+        for Xi, yi in torch.utils.data.DataLoader(dataset_train,
+                                                  batch_size=batch_size):
 
             if model_type == "dnn":
                 dims = list(Xi.shape)
                 dim_flat = np.prod(dims)/Xi.shape[0]
-                Xi, yi = Xi.reshape(Xi.shape[0], int(dim_flat)).to(device), yi.to(device)
+                Xi, yi = Xi.reshape(Xi.shape[0],
+                                    int(dim_flat)).to(device), yi.to(device)
             elif model_type == "cnn":
                 Xi, yi = Xi.to(device), yi.to(device)
 
@@ -342,12 +345,13 @@ def train_model(model_type, model, num_epochs,
                                                batch_total=batch_total, epoch=epoch,
                                                training=True, **train_out)
 
-                valid_out = valid_step(model_type, model, X_valid, y_valid,
-                                       batch_s,
-                                       device=device, criterion=criterion)
-                valid_loss, valid_acc = report(verbose, y=y_valid, batch_cur=batch_cur,
-                                               batch_total=batch_total, epoch=epoch,
-                                               training=False, **valid_out)
+                valid_out = valid_step(model_type, model,
+                                       X_valid, y_valid,
+                                       batch_s, device=device,
+                                       criterion=criterion)
+                valid_loss, valid_acc = report(verbose, y=y_valid,
+                                               batch_cur=batch_cur,
+                                               batch_total=batch_total, epoch=epoch, training=False, **valid_out)
                 if logging:
                     update_logger(logger, epoch+1, epoch*batch_total + batch_cur,
                                   train_loss, valid_loss, train_acc, valid_acc,
@@ -401,6 +405,8 @@ def valid_step(model_type, model, X_valid, y_valid,
 
     model.eval()
     tic = time.time()
+    X_valid.to(device)
+    y_valid.to(device)
     with torch.no_grad():
         y_pred = model(X_valid)
         loss = criterion(y_pred, y_valid)
