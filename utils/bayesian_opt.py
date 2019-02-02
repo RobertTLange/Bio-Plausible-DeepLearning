@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import numpy as np
 
 # Import Bayesian Optimization Module
 from bayes_opt import BayesianOptimization, UtilityFunction
@@ -61,9 +62,9 @@ def BO_NN(num_evals, eval_func, func_type, dataset, hyper_space,
             else:
                 dim_in = 32 
             while invalid_kernel_size(next_point, dim_in):
-                next_point = optimizer.suggest(utility)
+                # Sample random point if BO suggestion fails!
+                next_point = sample_random_point(hyper_space)
                 next_point = check_next_point(next_point, func_type)
-
         if func_type != "comp_dnn":
             # Add additional inputs to list - remove from dict after fct call
             next_point["num_epochs"] = num_epochs
@@ -162,6 +163,13 @@ def get_iter_log(fname):
             except StopIteration:
                 break
     return counter
+
+
+def sample_random_point(hyper_space):
+    random_point = {}
+    for var, var_range in hyper_space.items():
+        random_point[var] = np.random.uniform(var_range[0], var_range[1], 1)[0]
+    return random_point
 
 
 if __name__ == "__main__":

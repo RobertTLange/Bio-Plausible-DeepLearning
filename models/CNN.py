@@ -72,7 +72,10 @@ def eval_cnn(dataset, batch_size, learning_rate, num_layers=2,
              num_epochs=1, k_fold=2, verbose=False):
 
     # be careful with feeding only 1 channel - cifar has 3rgb
-    ch_sizes = [1, ch_1, ch_2, ch_3, ch_4, ch_5][:(num_layers+1)]
+    if dataset != "cifar10":
+        ch_sizes = [1, ch_1, ch_2, ch_3, ch_4, ch_5][:(num_layers+1)]
+    else:
+        ch_sizes = [3, ch_1, ch_2, ch_3, ch_4, ch_5][:(num_layers+1)]
     k_sizes = [k_1, k_2, k_3, k_4, k_5][:num_layers]
 
     if verbose:

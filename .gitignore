@@ -4,5 +4,4 @@
 __pycache__
 .texpadtmp
 /data
-/logs
 *.pem
