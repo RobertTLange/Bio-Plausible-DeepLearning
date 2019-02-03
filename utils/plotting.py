@@ -27,7 +27,8 @@ def smooth(ts, windowSize):
 
 def plot_learning(its, train_acc, val_acc,
                   train_loss, val_loss,
-                  sm_window, pl_type, title, labels):
+                  sm_window, pl_type, title, labels,
+                  plot_legend=False):
 
     for i in range(len(train_acc)):
         its_temp = its[i]
@@ -56,7 +57,8 @@ def plot_learning(its, train_acc, val_acc,
             plt.ylabel('Accuracy')
             plt.title(title)
             plt.xticks(its_ticks, [])
-            plt.legend(loc=4, fontsize=8)
+            if plot_legend:
+                plt.legend(loc=4, fontsize=8)
         elif pl_type == "loss":
             plt.plot(its_temp[sm_window-1:], train_loss_temp,
                      c=CB_color_cycle[i*2], label=labels[i*2])
@@ -80,7 +82,8 @@ def plot_all_learning(its, train_accs, val_accs,
         plt.subplot(2, 3, counter)
         plot_learning(its[i], train_accs[i], val_accs[i],
                       train_losses[i], val_losses[i],
-                      sm_window, "accuracy", sub_titles[i], labels)
+                      sm_window, "accuracy", sub_titles[i], labels,
+                      plot_legend = (i==1))
         plt.subplot(2, 3, counter+len(train_losses))
         plot_learning(its[i], train_accs[i], val_accs[i],
                       train_losses[i], val_losses[i],
@@ -144,7 +147,6 @@ def plot_weight_dev(its, l_id, fr_n_weights,
             axs[0, i].plot(its[i][j], fr_n_weights[i][j][l_id],
                            label=labels[j])
         axs[0, i].set_ylabel(r"$||W_{t}||_F$", fontsize=15)
-        axs[0, i].legend()
         axs[0, i].set_title(sub_titles[i])
         axs[0, i].set_xticks(its_ticks)
         axs[0, i].set_xticklabels([])
@@ -156,15 +158,14 @@ def plot_weight_dev(its, l_id, fr_n_weights,
                              fontsize=15)
         axs[1, i].set_xticks(its_ticks)
         axs[1, i].set_xticklabels([])
-        axs[1, i].legend()
         for j in range(len(fr_n_weights[i])):
             axs[2, i].plot(its[i][j], fr_n_weights_grad_ch[i][j][l_id],
                            label=labels[j])
         axs[2, i].set_ylabel(r"$\frac{||\nabla W_{t+1} - \nabla W_{t}||_F}{||\nabla W_{t}||_F}$", fontsize=15)
         axs[2, i].set_xticks(its_ticks)
         axs[2, i].set_xticklabels(its_labels)
-        axs[2, i].legend()
 
+    axs[1, 1].legend()
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if save_fname is not None:
@@ -188,18 +189,19 @@ def plot_bo_results(bo_data, title, save_fname=None):
             if i == 0:
                 axs[0, i].set_ylabel("k-fold CV Test Accuracy")
 
-            axs[1, i].hist(bo_data[j][i], 50, density=1, alpha=0.75)
+            axs[1, i].hist(bo_data[j][i], 50, density=1, alpha=0.75, label=algo_labels[j])
             axs[1, i].set_title("Histogramm: " + data_labels[i])
             axs[1, i].set_xlabel("k-fold CV Test Accuracy")
 
-            axs[2, i].boxplot(bo_data[j][i], vert=True,
+            axs[2, i].boxplot([bo_data[0][i], bo_data[1][i] , bo_data[2][i]], vert=True,
                               patch_artist=True)
             axs[2, i].set_title("Boxplot: " + data_labels[i])
-            axs[2, i].set_xticklabels(algo_labels[:(j+1)],
+            axs[2, i].set_xticklabels(algo_labels,
                                       rotation=45, fontsize=8)
             if i == 0:
                 axs[2, i].set_ylabel("k-fold CV Test Accuracy")
 
+    axs[1, 1].legend()
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if save_fname is not None:
