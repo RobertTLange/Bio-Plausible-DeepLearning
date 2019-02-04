@@ -26,7 +26,7 @@ class CNN(nn.Module):
         """
         Two relevant cases for our analysis:
             1. 1 Channel - MNIST/Fashion = 28x28
-            2. 3 Channels - CIFAR-10 = 32x32 
+            2. 3 Channels - CIFAR-10 = 32x32
         """
         if ch_sizes[0] == 1:
             W_in = 28
@@ -87,6 +87,7 @@ def eval_cnn(dataset, batch_size, learning_rate, num_layers=2,
 
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     # Initialize list to store cross_val accuracies
     scores = []
     # Load dataset

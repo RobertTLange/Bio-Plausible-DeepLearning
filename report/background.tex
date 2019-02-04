@@ -53,6 +53,9 @@
 \newtheorem{definition}{Definition}[section]
 \def\R{\mathbb{R}}
 
+\usepackage{wrapfig}
+\usepackage{lipsum}  % generates filler text
+
 \usepackage{todonotes}
 \newcommand{\rob}[1]{\todo[color=red!40]{Rob: #1}}
 %-----------------------------------------------------------------
@@ -60,7 +63,7 @@
 		A Critical Review}
 
 \author{
-  Robert T. Lange \thanks{This progress report was submitted as part of the final project of the "Models of Neural Systems" (Winter Term 2018/2019) computer practical course taught and organized by Prof. Richard Kempter (Bernstein Center for Computational Neuroscience, Berlin).} \\
+  Robert T. Lange \thanks{This progress report was submitted as part of the final project of the "Models of Neural Systems" (Winter Term 2018/2019) computer practical course taught and organized by Prof. Richard Kempter (Bernstein Center for Computational Neuroscience, Berlin).} \ \thanks{Our implementation and further documentation can be found here: \url{https://github.com/RobertTLange/Bio-Plausible-DeepLearning}. Parts of the code were taken from \url{https://github.com/jordan-g/Segregated-Dendrite-Deep-Learning}.} \\
   Einstein Center for Neurosciences Berlin\\
   \url{robert.lange17@imperial.ac.uk} \\
   \url{www.rob-lange.com} \\
@@ -77,12 +80,11 @@
 %--------------------------------------------------------------------
 \section{Introduction}
 
-Backpropagation \citep{rumelhart1986} provides a biologically implausible solution to the synaptic credit assignment problem in Deep Learning (see e.g. \citet{lecun2015, schmidhuber2015}). While computational graphs and the chain rule successfully provide approximate gradients in deep layered structures, the mere empirical success does not imply that the brain is capable of implementing such a procedure.\rob{Restructure Introduction!}
-In this report we review different proposed solutions to such problems that render backpropagation biologically implausible. More specifically, we focus on an approach which implements local plasticity rules in a neural network architecture with dendritic compartments \citep{guerguiev2017}.
-Previously it has been argued that such an architecture overcomes multiple points of critique while accomplishing similar strong results. Our robustness checks reveal that such a claim is not justified.
-Deep Learning (DL) has rightfully been the poster child of Machine Learning success in the 21st century. It has dominated competitions and research across all domains (computer vision, natural language processing, robotics as well as computational neuroscience).
-
-Kriegeskorte/DiCarlo/RSA - DNNs outperform alternative frameworks in accurately reproducing activity patterns in cortex - What does this mean? Is DL just extremely flexible/expressive?
+Backpropagation \citep{rumelhart1986} provides a biologically implausible solution to the synaptic credit assignment problem in Deep Learning (see e.g. \citet{lecun2015, schmidhuber2015}). While computational graphs and the chain rule successfully calculate gradients in deep layered structures, the mere empirical success does not imply that the brain is capable of implementing such a procedure. Still, deep neural networks have provided an outstanding technique which outperforms alternatives in modeling activity patterns in the visual cortex (see e.g. \citep{yamins_2016, khaligh_2014}). In order to understand why backpropagation might provide an approximation to the neural credit assignment solution, we need to better understand the underlying mechanisms.
+In this report we review different approaches which have been proposes in order to solve the credit assignment problem in a seemingly more plausible fashion. More specifically, we focus on an approach which implements a local plasticity rule in a feedforward neural network architecture with dendritic compartments \citep{guerguiev2017}.
+\citet{larkum_1999}, first, highlighted the importance of electrical segregation of apical dendritic integration in pyramidal neurons in layer 5 of the neocortex. The calcium-rich apical shaft receives inputs from higher cortical areas which in turn can lead to prolonged activity in the form of plateau potentials. These potentials propagate down the soma where they are assumed to drive plasticity. The basal compartment, on the other hand, receives bottom-up input from lower-level sensory areas. 
+\citet{kording2001}, therefore, proposed that a learning rule based on the integration of both such signals might solve the credit assignment problem. \citet{guerguiev2017} took this initial inspiration to the workbench, introduced a feedforward-specific formulation and tested its implementation on a basic MNIST benchmark.   
+Previously, it has been argued that such an architecture overcomes multiple points of critique while accomplishing similar strong results. But does it scale to more complex datasets? How robust is this new credit assignment paradigm? Ideally, the learning rule based on plateau potential differences does not require vast amounts of hyperparameter tuning. Hence, we conduct robustness checks and analyze the learning dynamics across three different datasets.
 
 The report is structured as follows: First, we set the stage by introducing notation as well as fundamental problems with backpropagation. 
 We briefly review the literature trying to solve such.
@@ -96,15 +98,15 @@ Finally, discuss problems with the proposed approach and discuss recent contribu
 \newpage
 \section{Credit Assignment in Deep Layered Structures}
 
-Arguably, Deep Learning's most simple layered architecture is the Multi-Layer Perceptron (MLP). A MLP composes layers $\{h_l\}_{l=1}^L$ of non-linear and affine transformations:
+Arguably, Deep Learning's most simple, layered architecture is the Multi-Layer Perceptron (MLP). A MLP composes layers $l=1, \dots, L$ of non-linear and affine transformations:\footnote{For clarity and completeness we follow \citet{bartunov2018}'s notation throughout this manuscript.}
 
 $$h_l \coloneqq f(h_{l-1}; \theta_l) = \sigma_l (W_l h_{l-1} + b_l)$$ 
 
-where $h_0 = x$ and $\theta_l = \{W_l, b_l\}$. In a classification task the final output layer $h_L$ represents the output distribution over the possible labels. In order to train such a composition one has to define a loss function. A standard classification loss function is given by the cross-entropy between the actual labels distribution, $q(y|x)$, and the output distribution of the network, $p(y|h_L)$:
+where $h_0 = x$ and $\theta_l = \{W_l, b_l\}$. In a classification task the final output layer $h_L$ represents the output distribution over the possible labels. In order to train such a composition one has to define a loss function. A standard supervised classification loss function might be given by the cross-entropy between the actual labels distribution, $q(y|x)$, and the output distribution of the network, $p(y|h_L)$:
 
 $$\mathcal{L}(h_L) = - \sum_y q(y|x) log p(y|h_L)$$
 
-In order to train the parameters $\Theta \coloneqq \{\theta\}_{l=1}^L$ of a network one makes use of powerful auto-differentiation tools and stochastic/batch gradient descent methods. More specifically, the classical backpropagation algorithm is based around the following equations:
+In order to train the parameters $\Theta \coloneqq \{\theta\}_{l=1}^L$ of a network, one makes use of powerful auto-differentiation tools and stochastic/batch gradient descent methods. More specifically, the classical backpropagation algorithm is based around the following equations:
 
 \begin{align*}
 	\frac{\partial \mathcal{L}}{\partial \theta_l} &= \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l}} = \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \left(\frac{dh_{l+1}}{d h_{l}}\right)^T \frac{\partial \mathcal{L}}{\partial h_{l+1}} \\ 
@@ -112,13 +114,15 @@ In order to train the parameters $\Theta \coloneqq \{\theta\}_{l=1}^L$ of a netw
 	&= \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \delta_{l+1} \delta_{l+2}\frac{\partial \mathcal{L}}{\partial h_{l+2}} = \dots =  \left(\frac{dh_{l}}{d \theta_{l}}\right)^T \left(\prod_{i=l+1}^L \delta_i\right) \frac{\partial \mathcal{L}}{\partial h_{L}}
 \end{align*}
 
-In order to compute the gradient with respect to the parameters of a specific layer $l$, one has to first compute a forward pass of the network to obtain the hidden units $\{h_l\}_{l=0}^L$. Afterwards, one is able to compute a loss-based error signal, $e \coloneqq \frac{\partial \mathcal{L}}{\partial h_{L}}$.\rob{Add gradient wrt to data as well as basic SGD update rule}
+To compute the gradient with respect to the parameters of a specific layer $l$, one first computes a forward pass through the network to obtain the hidden units $\{h_l\}_{l=0}^L$. Afterwards, one is able to compute a loss-based error signal, $e \coloneqq \frac{\partial \mathcal{L}}{\partial h_{L}}$ based on the true label. Ultimately, the weights are updated using a standard stochastic gradient descent rule with learning rate $\eta$:
 
-There are multiple problems rendering backpropagation biologically implausible. 
+$$\Delta \theta_l \coloneqq \eta \times \frac{\partial L}{\partial \theta_l}$$
+
+There are multiple problems rendering backpropagation biologically implausible: 
 
 \begin{enumerate}
-	\item Weight transport Problem: Downstream errors are fed back to upstream neurons via exact symmetric copy of downstream synaptic weight matrix - neuron "deep" within network has to have precise knowledge of all downstream synapses!
-	\item Global signed error signals: The error computed via forward propagation $e$ has to be accessible at every layer.  Physiologically, it is not clear how this can be achieved without a separate pathway.
+	\item Weight transport Problem: Downstream errors are fed back to the upstream neurons via an exact symmetric copy of downstream synaptic weight matrix. This amounts to each neuron "deep" within the network having access to precise knowledge of all downstream synapses.
+	\item Global signed error signals: The error computed via forward propagation $e$ has to be accessible at every layer. Physiologically, it is not clear how this can be achieved without a separate pathway.
 	\item Costly matrix transposition: Depending on the memory constraints, matrix transposition is a costly permutation operation. This might be circumvented by accessing the synaptic weights in a different order. Both options do not seem particularly plausible.
 	\item Feedback information propagation does not influence the activity of the feedforward network. This does not align with any neuropyhsiological observation.
 \end{enumerate}
@@ -129,192 +133,150 @@ Based on these observations, the neuroscience community has mostly dismissed the
 \newpage
 \section{Literature Review}
 
-Feedback Alignment - \citet{lillicrap2016}: Introduce a first feedback alignment approach to solve the weight transport problem of backpropagation. Forward and backward weights are modeled separately - backward weights align with weight matrix transpose through learning process. Argument follows from positive definiteness of weight and random matrix product and a rotation line of thought.
+Backpropagation assumes a very constraint feedback pathway and thereby introduces the weight transport problem. Feedback alignment \citep{lillicrap2016} intends to overcome this by completely loosening this constraint. More specifically, the feedback pathway is set to be a fixed random matrix, $B$. Very astonishingly, \citet{lillicrap2016} were able to analytically and empirically show that the credit is still assigned with such a learning rule.
+The feedforward weights ultimately "align" such that the random matrix is capable to propagate valuable error-reducing information. More specifically, they exploit the fact that as long as $B \approx W^T$ and $e^TWBe > 0$, the gradient will be within 90 degrees of the optimal backpropagation gradient. The speed of learning depends on the exact degree.
+The learning rule is able to approximate simple linear functions, can be extended with sigmoid non-linearities to tackle classification problems and can also accommodate for sparsity.
+Still, feedback alignment does require the propagation of a signed error signal via a distinct pathway. Furthermore, artificial neurons do not integrate activity over time nor spike stochastically.
 
-* Possible solutions:
-    1. Retrograde transmission of info along axons - problem of slow timescale
-    2. Feedback of errors via second network - problem of symmetry assumption of feedforward and feedback connections
-    3. Here: Show that even fixed random connections can allow for learning - symmetry not required! Instead implicit dynamics lead to soft alignment between forward and backward weights
+While feedback alignment relies on an implicit feedback communication, target propagation \citep{lee2015} trains a separate set of feedback weights which explicitly defines backward activity. The weights are learned by minimizing a reconstruction loss. Hence, the feedback (decoding) connections are tuned to invert the preceding feedforward (encoding) activity. 
+Versions of target propagation differ in the construction of the target. E.g. Simplified difference target propagation \citep{bartunov2018} computes the target via propagation of higher layer activity with layer-wise inverses and a stabilized delta rule. \citet{bartunov2018} highlight the necessity of diversity in targets due to a problem of low entropy in the classification targets. This can potentially lead to non-robust inverse weights.
 
-* Observations:
-    * Feedback weights does not have to be exact: $B \approx W^T$ with $e^TWBe > 0$. rotation within 90 degrees of backprop signal. Learning speed depends on degree!
-    * Alignment of $B$ and $W^T$ via adjustment of W (and B) possible
+Figure \ref{fig:lit_rev} provides a more detailed summary of the existing literature:
 
-* Feedback alignment:
-    * Modulator signal (error-FA) does not impact forward pass post-synaptic activity bu acts to alter plasticity at the forward synapses.
-    * FA may encourage W to align with Moore-Penrose pseudoinverse of B - approximate functional symmetry
-    * Inference vs learning - towards bayesian approaches
-    * Use random weights in backward pass to deliver info to earlier layers
-    * Still requires delivery if signed error via distinct pathway
-    * Direct/Broadcast FA - connect feedback from output layer directly to all previous ones
-
-* Experiments:
-    * Learns linear function with single hidden layer - learning not slower than backprop
-    * Sigmoid nonlinearity and classification task - altered function of post-synaptic activity - learned also to communicate info when 50% of weights were randomly removed
-    * More layers 3 hidden layers - as well as backprop and making use of depth - froze layers and trained alternatingly - positive/negative phase?
-    * Neurons that integrate activity over time and spike stochastically - synchronous pathways
-
-* Possible Extensions:
-    * Fixed spike thresholds/refractory period
-    * Dropout/stochasticity
-
-
-\citet{lee2015, bartunov2018} - Simplified Difference
-
-General Content: Extent the target propagation algorithm to not require exact gradient at penultimate layer. Test alternative learning rules in more complicated settings (CIFAR/ImageNet) and differentiate between locally and fully connected architectures. Very good review but not much additional innovation. Behavioral + Physiological Realism 
-
-* Contrastive Hebbian Learning/Generalized Recirculation: Use top-down feedback connections to influence neural activity and differences to locally approx gradients
-    * Positive/negative phase - need settling process - Likely to slow for brain to compute in real time
-
-* Target Propagation: Trains distinct set of feedback connections defining backward activity propagation \rob{Write paragraphs for Target Propagation}
-
-    * Connections trained to approximately invert feedforward connections to compute target activites for each each layer by successive inversion - decoders
-        * Reconstruction + Forward loss
-        * Different target constructions
-    * Vanilla TP: Target computation via propagation from higher layers' targets backwards through layer-wise inverses
-    * Difference TP: Standard delta rule with additional stabilization from prev reconstruction error. Still needs explicit grad comp at final layer
-    * Not tested on data more complex than MNIST
-
-* Simplified Difference Target Propagation: Computation also for penultimate layer with help of correct label distribution - removes implausible gradient communication \rob{Write paragraphs for SD Target Propagation}
-    * Need diversity in targets - problem of low entropy of classification targets
-    * Need precision in targets - poor inverse learned
-    * Combat both problems/weakness of targets with help of auxiliary output resembling random features from penultilmate hidden layer
-    * Parallel vs alternating inverse training - simultaneous more plausible
-
-* Experiments - Mostly negative results:
-    1. None of existing algos is able to scale up - Good performance MNIST/Somewhat reasonable on CIFAR/Horrible on ImageNet - Seems like weight-sharing is not key to success
-    2. Need for behavioral realism - judged by performance on difficult tasks
-    3. Hyperparameter Sensitivity
-        * First fix "good" architeture and then optimize
-        * Use hyperbolic tanh instead of ReLu - work better
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{../figures/report/lit_rev}
+	\caption{Literature Review.}	\label{fig:lit_rev}
+\end{figure}
 
 %--------------------------------------------------------------------
 \newpage
 \section{Local Synaptic Learning Rules with Dendritic Integration}
 
-\citet{kording2001} postulated that the brain might solve the credit assignment problem with the help of electrical segregation. Inspired by the physiological observation of multi-compartment pyramidal neurons\rob{Add figure of dendrites}, the derive a basic local learning rule which integrate top-down feedback at the distal apical dendrites with bottom-up sensory input from the basal dendrites. 
+\citet{kording2001} postulated that the brain might solve the credit assignment problem with the help of electrical segregation. Inspired by the physiological observation of multi-compartment pyramidal neurons (see figure \ref{fig:pyramidal}), they derive a basic local learning rule which integrate top-down feedback at the distal apical dendrites with bottom-up sensory input from the basal dendrites. 
+\citet{guerguiev2017} extend this intuition to the assignment of credit in MLPs. More specifically, they formalize the idea of plateau potentials driving synaptic plasticity in pyramidal neurons. The apical compartment does not constantly communicate with the somatic compartment. Instead, voltage-gated $Ca^{2+}$ channels provide feedback information to the nucleus. Plateau potentials correspond to a long-lasting increase in membrane potential due to these events in the apical shaft. 
 
-\citet{guerguiev2017} extend this intuition to the assignment of credit in MLPs. More specifically, they formalize the idea of plateau potentials driving synaptic plasticity in pyramidal neurons. The apical compartment does not constant communicate with the somatic compartment. Instead, voltage-gated $Ca^{2+}$ channels provide feedback information to the nucleus. Plateau potentials correspond to a long-lasting increase in membrane potential due to these events in the apical shaft. 
+\begin{wrapfigure}{L}{0.5\textwidth}
+\centering
+\includegraphics[width=0.5\textwidth]{../figures/report/pyramidal_plateu}
+\caption{\label{fig:pyramidal} Taken from \citet{larkum_1999}. }
+\end{wrapfigure}
  
-A Hidden layer is described by a set of $m$ three compartmental neurons:\rob{Add text to the equations}
+Let $n_{l}$ denote the number of hidden units in layer $l$. A Hidden layer is described by real-valued vectors $\mathbf{V^{la}}(t), \mathbf{V^{lb}}(t), \mathbf{V^{l}}(t) \in \mathbb{R}^{n_l}$ which correspond to the three compartments of each neuron:
 
 \begin{align*}
-	\textit{Apical:  } \mathbf{V^{0a}}(t) &= [V_1^{0a}(t), \dots, V_m^{0a}(t)]\\
-	\textit{Basal:  } \mathbf{V^{0b}}(t) &= [V_1^{0b}(t), \dots, V_m^{0b}(t)]\\
-	\textit{Somatic:  }\mathbf{V^{0}}(t) &= [V_1^{0}(t), \dots, V_m^{0}(t)]
+	\textit{Apical:  } \mathbf{V^{la}}(t) &= [V_1^{la}(t), \dots, V_m^{la}(t)]\\
+	\textit{Basal:  } \mathbf{V^{lb}}(t) &= [V_1^{lb}(t), \dots, V_m^{lb}(t)]\\
+	\textit{Somatic:  }\mathbf{V^{l}}(t) &= [V_1^{l}(t), \dots, V_m^{l}(t)]
 \end{align*}
 
-The dynamics of the somatic membrane potential are given by
+Assuming that the resting membrane potential is at 0 ($V^l_{rest}=0$), the somatic membrane potential of the hidden layer evolves based on top-down apical dendritic input and bottom-up basal dendritic input. 
+These basal input is computed via a dot-product between the the forward weights $W^l$ and the the kernel-filtered spike train $s^{l-1}$ from the previous layer and by adding an intercept $b^l$. The initial spike train is $s^0 = s^{input}$ is given by a Poisson process whose rate-of-fire is determined by the pixel intensity of a given input image. 
+The apical input, on the other hand, is computed by a dot-product between the feedback weights $Y$ and the upper layer spike train $s^{l+1}$. Both contributions are scaled by the ratio of dendritic conductances $g_a, g_b$ and the leak conductance $g_{leak}$. Please note that these quantities do not exhibit any biologically meaningful units of measurement and can hardly be set by physiological intuition/evidence.
 
-\begin{itemize}
-	\item[$\to$] 3 Compartment Hidden Layer: $\mathbf{V}^{0a}(t), \mathbf{V}^{0b}(t), \mathbf{V}^{0}(t) \in \R^m$
-\end{itemize}	
+The dynamics are then summarized by the following system of equations:
+
 	\begin{align*}
-		\tau \frac{dV_i^0(t)}{dt} &= -V_i^0(t) + \frac{g_b}{g_l}\left(V_i^{0b}(t) - V_i^0(t)\right) +\frac{g_a}{g_l}\left(V_i^{0a}(t) - V_i^0(t)\right)\\
-		V_i^{0b} &= \sum_{j=1}^l W_{ij}^0 s_j^{input}(t) + b_i^0 \ \ \text{and} \ \ V_i^{0a} = \sum_{j=1}^n Y_{ij} s^1_j(t)
+		\tau \frac{dV_i^l(t)}{dt} = -V_i^l(t) + \frac{g_b}{g_{leak}}\left(V_i^{lb}(t) - V_i^l(t)\right) +\frac{g_a}{g_{leak}}\left(V_i^{la}(t) - V_i^l(t)\right)\\
+		V_i^{lb} = \sum_{j=1}^{n_{l-1}} W_{ij}^l s_j^{l-1}(t) + b_i^l; \ \ \ V_i^{la} = \sum_{j=1}^{n_{l+1}} Y_{ij} s^{l+1}_j(t); \ \ \
+		s_j^{l}(t) = \sum_k \kappa(t-t_{jk}^{l})
 	\end{align*}
-\begin{itemize}
 
-	\item[$\to$] 2 Compartment Output Layer: $\mathbf{V}^{1b}(t), \mathbf{V}^{1}(t) \in \R^n$
-\end{itemize}
+where $\kappa$ denotes a response kernel that convolves the spike train (here: exponential).
+	
+The output layer indexed by $L$, on the other hand, does not receive any apical inputs and thus consists of only two compartments: $\mathbf{V}^{Lb}(t), \mathbf{V}^{L}(t) \in \R^n$ with dendritic conductance $g_d$. 
+
 \begin{align*}
-		\tau \frac{dV_i^1(t)}{dt} &= -V_i^1(t) + \frac{g_d}{g_l}\left(V_i^{1b}(t) - V_i^1(t) \right) + I_i(t)\\
-		V_i^{1b} &= \sum_{j=1}^l W_{ij}^1 s_j^{0}(t) + b_i^1
+		\tau \frac{dV_i^L(t)}{dt} &= -V_i^L(t) + \frac{g_d}{g_{leak}}\left(V_i^{Lb}(t) - V_i^L(t) \right) + I_i(t)\\
+		V_i^{Lb} &= \sum_{j=1}^{n_{l-1}} W_{ij}^L s_j^{L-1}(t) + b_i^L
 \end{align*}
-\begin{itemize}
-	\item[$\to$] $s_j^{input}(t) = \sum_k \kappa(t-t_{jk}^{input})$ with $\kappa$ response kernel
-	\end{itemize}
-	
-\begin{itemize}
-	\item[$\to$] \textbf{Forward} ($t_0 + \Delta t_s \to t_1$): $I_i(t) = 0, \ \forall i=1,\dots, n$
-	\begin{itemize}
-		\item[$\circ$] At $t_1$: $\alpha_i^f = \sigma\left(\frac{1}{\Delta t_1} \int_{t_1 - \Delta t_1}^{t_1} V_i^{0a}(t)dt\right)$
-	\end{itemize}
-	\item[$\to$] \textbf{Target} ($t_1 + \Delta t_s \to t_2$): $I_k(t) = \phi_{max}$ for $y_{sample} = k$
-	\begin{itemize}
-		\item[$\circ$] At $t_2$: $\alpha_i^t = \sigma\left(\frac{1}{\Delta t_2} \int_{t_2 - \Delta t_2}^{t_2} V_i^{0a}(t)dt\right)$
-	\end{itemize}
-\end{itemize}
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.45]{../figures/report/phases}
-\end{figure}
-
-\begin{itemize}
-	\item[$\to$] How is learning defined in such a model?
-	Forward phase dynamics $\Leftrightarrow$ Target phase dynamics  
+A classification label is obtained by integrating the differential equations over a certain time (until a stationary state is achieved) and selecting the label corresponding to the output neuron with the largest rate-of-fire. 
 	
-	\item[$\Rightarrow$] Somatic compartments generate Poisson process spikes:
-	\begin{itemize}
-		\item[$\circ$] Rates-of-fire: $\phi^l_i(t) = \phi_{max} \sigma(V_i^l(t))$
-	\end{itemize}
-	
-	\item[$\Rightarrow$] Output Layer:
-	\begin{itemize}
-		\item[$\circ$] Target firing rates: $\phi_i^{1\star} = \frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^1(t)dt$
-		\item[$\circ$] Loss function: $L^1 = ||\phi_i^{1\star} - \bar{\phi}_i^{1f}||_2^2 = ||\frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^1(t)dt - \frac{1}{\Delta t_1} \int_{t_0 + \Delta t_s}^{t_1} \phi_i^1(t)dt||_2^2$
-	\end{itemize}
-	\vspace{0.5cm}
-	
-	\item[$\Rightarrow$] Hidden Layer:
-	\begin{itemize}
-		\item[$\circ$] Target firing rates: $\phi_i^{0\star} = \bar{\phi}_i^{0f} + \alpha_i^t - \alpha_i^f$
-		\item[$\circ$] Loss function: $L^0 = ||\phi_i^{0\star} - \bar{\phi}_i^{0f}||_2^2 = ||\alpha^t - \alpha^f||_2^2$
-	\end{itemize}
-	\vspace{0.5cm}
-	
-	\item[$\Rightarrow$] Local error minimization via SGD \rob{Write down gradients explicitly}
-\end{itemize}
+\begin{wrapfigure}{L}{0.5\textwidth}
+\centering
+\includegraphics[width=0.5\textwidth]{../figures/report/phases}
+\caption{\label{fig:phases} Taken from \citet{guerguiev2017}.}
+\end{wrapfigure}
 
+The somatic output current also receives an external teaching current, $I_i(t)$, which guides learning. More specifically, learning is defined by two phases of varying length: A forward and a target phase (see figure \ref{fig:phases}). The length of such phases are randomly sampled from an inverse Gaussian distribution.\footnote{\citet{guerguiev2017} argue that the specific length does not matter. Important is only the existence of these those alternating phases.}
+More specifically, let the forward phase start at time $t_0$. Furthermore, there is an initial settling period of $\Delta t_s$.
+ 
+During the forward phase the teaching current is set to zero for all output neurons, i.e. $I_i(t) = 0, \ \forall i=1,\dots, n^L$. For the time from $t_0 + \Delta t_s$ until the start of the target phase $t_1$ we calculate an approximation of the plateau potential by averaging over the apical membrane potential and taking the sigmoid non-linearity of the resulting value.
 
+During the target phase from $t_1 + \Delta t_s$ until $t_2$ we do the same, expect for the fact that the external current is set to a maximal firing rate $\phi_{max}$ for the specific label of the currently processed image, $I_i = \phi_{max}$ for $i = y_{label}$ and 0 otherwise.
+	
+\begin{align*}
+	\text{Forward:  } \alpha_i^{lf} &= \sigma\left(\frac{1}{\Delta t_1} \int_{t_1 - \Delta t_1}^{t_1} V_i^{la}(t)dt\right) \text{  with  } I_i(t) = 0, \ \forall i=1,\dots, n^L, l=0,\dots, L-1 \\
+	\text{Target:  } \alpha_i^{lt} &= \sigma\left(\frac{1}{\Delta t_2} \int_{t_2 - \Delta t_2}^{t_2} V_i^{la}(t)dt\right) \text{  with  } I_i(t) = \phi_{max}, \ \text{for  } i = y_{label}, 0 \text{  otherwise.}
+\end{align*}
 
+So how can learning be defined in such a model? \citet{guerguiev2017} argue that a network which has learned to classify exhibits the same activity pattern during the forward phase (i.e. without teaching current/supervision signal) as in the supervised target phase. More formally, the somatic compartments generating Poisson-like spikes should fire at the target rate, $\phi_i^{L\star} = \frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^L(t)dt$ with $\phi^l_i(t) = \phi_{max} \sigma(V_i^l(t))$. A desired loss function for the output layer can then be derived as follows:
+
+$$\mathcal{L}^L = ||\phi^{L\star} - \bar{\phi}^{Lf}||_2^2 = ||\frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^L(t)dt - \frac{1}{\Delta t_1} \int_{t_0 + \Delta t_s}^{t_1} \phi_i^L(t)dt||_2^2$$
+
+For all other layers the loss function is defined in terms of the approximate plateau potential difference:
+
+$$L^l = ||\phi^{l\star} - \bar{\phi}^{lf}||_2^2 = ||\bar{\phi}_i^{lf} + \alpha_i^{lt} - \alpha_i^{lf} - \bar{\phi}^{lf}||_2^2 = ||\alpha^{lt} - \alpha^{lf}||_2^2 \ \forall l=0, \dots, L-1$$
+
+Given such layer-wise loss functions, one can then perform local gradient descent updates in order to tune the feedforward synaptic weights:
+
+$$\Delta W^l \propto \frac{\partial \mathcal{L}^l}{\partial W^l} \text{  and  } \Delta b^l \propto \frac{\partial \mathcal{L}^l}{\partial b^l}$$
+
+Please note that one can also learn the feedback weights $Y^l$, obtaining a compartmental version of target propagation. When keeping $Y^l$ fixed to their random initialization one, on the other hand, obtains a learning rule akin to feedback alignment.
 
 %--------------------------------------------------------------------
 \newpage
 \section{Empirical Investigations}
 
-\subsection*{Scalability Across Datasets}
-
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{../figures/report/datasets}
-	\caption{Illustration of the 10 different classes/labels of the analyzed datasets. \textbf{Top Row:} MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Middle Row:} Fashion-MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Bottom Row:} CIFAR-10 dataset. Data format: $60000 \times 3 \times 32 \times 32$. From top to bottom the intra-class variability/entropy increases significantly. We normalize the pixel values to lie within $[0, 1]$ and reshape the images into vector format (e.g. $X \in [0, 1]^{784}$) before training the classifiers. This helps dealing with erratic gradient behavior.}	
+	\caption{Illustration of the 10 different classes/labels of the analyzed datasets. \textbf{Top Row:} MNIST dataset. \textbf{Middle Row:} Fashion-MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Bottom Row:} CIFAR-10 dataset. Data format: $60000 \times 3 \times 32 \times 32$. From top to bottom the intra-class variability/entropy increases significantly. We normalize the pixel values to lie within $[0, 1]$ and reshape the images into vector format (e.g. $X \in [0, 1]^{784}$) before training the classifiers.}	\label{fig:data}
 \end{figure}
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{../figures/learning}
-	\caption{Illustration of the learning performance.}
+	\caption{Illustration of the learning performance. \textbf{Top Row}: Train and validation accuracy across the three datasets. \textbf{Bottom Row}: Train and validation cross-entropy loss across the three datasets. The MLP architectures consists of a single hidden layer with 100 hidden units.} \label{fig:performance}
 \end{figure}
-\rob{Add description of learning performance comparison.}
+
+Most of the computational neuroscience literature trying to tackle the problem of supervised learning focuses on one single dataset: MNIST \cite{lecun_1998}. Since classification tasks do not only require the skill of optical character recognition, we test the scalability and flexibility of the introduced architecture to different datasets. It is desirable to have a learning rule which is able to deal with dataset which exhibit large amounts of entropy in there data generating process. Therefore, we implemented and tested the \citet{guerguiev2017} model not only on MNIST but also on the Fashion-MNIST \citep{xiao_2017} as well as the CIFAR-10 \citep{torralba_2008} dataset (see figure \ref{fig:data}). Figure \ref{fig:performance} compares the learning performance of the compartmental deep neural network with a standard backpropagation MLP and convolutional neural network (CNN). One can clearly observe that the alternative compartment-based learning rule accomplishes strong performance on both traditional MNIST and Fashion-MNIST. For the RGB CIFAR-10 dataset the compartmental approach falls drastically short. The validation accuracy does not exceed 35 percent after 10 epochs (SGD loops over the entire training dataset).
+Hence, this provides evidence that the approach proposed does not deal well with datasets which exhibit large variability in their representations.
 
 \subsection*{Learning Dynamics}
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{../figures/dynamics_l0}
-	\caption{Illustration of the learning performance.}
+	\caption{Illustration of the learning dynamics.}\label{fig:dynamics}
 \end{figure}
-\rob{Add description of learning dynamics comparison.}
 
-\newpage
+We further analyze the dynamics of the parameters across the learning process. The first row of figure \ref{fig:dynamics} displays the Frobenius norm of the weight matrix of the first layer. Large weights usually provide an indicator of overfitting (and thereby provide the motivation for norm-based regularization). One can observe that the weights are magnitudes larger for the compartmental DNN as compared to the backpropagation MLP. At the same time the weights appear to converge faster. The second row displays the relative change of the weights between updates. Finally, the gradients do not appear to change as much for the compartmental rule.
+Together with out previous conclusions from the learning performance provides evidence for a local optimum being reached fairly early in the learning procedure. This might be the reason for strong performance early in the learning but is not desired later on.
+
 \subsection*{Hyperparameter Robustness}
 
-Bayesian Optimization \rob{Add BO classic reference} is a probabilistic technique commonly used to optimize the parameters of complex functions which are costly to evaluate. Computing cross-validated test accuracies of deep networks is one such costly function. Instead of randomly searching through the hyperparameter space, one approximates the loss function $\mathcal{L}^{k-fold}(\theta|X, y)$ with the help of a Gaussian Process (GP).
+Finally, we are interested in the robustness of the compartmental approach. There are many hyperparameters which do not come with a natural biological interpretation (do to the rescaling of the membrane potential at rest). In the supplementary material we provide a list of all hyperparameters which have to optimized for a given classification task. An algorithmic approach to the credit assignment problem has to be robust to changes in such parameters. We therefore analyze the hyperparameter sensitivity with the help of Bayesian optimization.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{../figures/bayes_opt_comparison}
-	\caption{Illustration of the learning performance.}
+	\caption{Illustration of the learning performance. 50 runs of the BO scheme using a Matern kernel ($\nu=2.5$) and a UCB acquisition function. We display the time-series, histogram and boxplots for all models and datasets.}\label{fig:bo}
 \end{figure}
 
-\rob{Add description of Baysian optimization comparison.}
+Bayesian optimization (BO; \citet{snoek_2012}) is a probabilistic technique commonly used to optimize the parameters of complex functions with costly evaluations. Computing cross-validated test accuracies of deep networks is one such costly function. Instead of randomly searching through the hyperparameter space, one is able to guide the search in a Bayesian fashion. We approximate the loss function $\mathcal{L}^{k-fold}(\theta|X, y)$ as an infinitely dimensional vector with the help of a Gaussian Process (GP; see e.g. \citet{rasmussen_2004}). The properties (i.e. smoothness, differentiability, etc.) of the function are encoded in the covariance matrix of the GP. This in turn is characterized by a kernel function (e.g. squared-exponential or Matern). Given a mean vector and a covariance matrix, we can construct the multivariate Gaussian posterior of the loss surface given the data and as a function of the hyperparameters. 
+The next hyperparameter configuration which we intend to evaluate then has to efficiently tradeoff the mean (exploitation) and the variance (exploration) of the GP. This is usually done by evaluating an acquisition function (e.g. expected improvement, upper-confidence bound). Hence, instead of randomly evaluating the target function, we query the function in a Bayesian optimal fashion.\footnote{Note that the covariance matrix inversion needed to obtain the GP posterior comes at $\mathcal{O}(n^3)$ where $n$ denotes the number previous evaluations.} This query schedule reduces the number of overall network training but requires us to update the GP posterior after every evaluation and to evaluate the acquisition function.
 
+In figure \ref{fig:bo} we display the results of a BO run with 50 evaluations for all three datasets (MNIST, Fashion-MNIST, CIFAR-10) as well as the three model types (backpropagation MLP and CNN as well as compartmental MLP). The first row depicts the time-series of 3-fold cross-validated test accuracies. The second row, on the other hand, displays the discrete histogram of test accuracies. And finally, the last row demonstrates boxplots of the distributions. We can observe that both the traditional MLP and the CNN appear very robust across the different hyperparameters.
 
 %--------------------------------------------------------------------
-\newpage
 \section{Outlook and Conclusion}
+
+This report has empirically investigated the scalability and robustness of the compartmental alternative to backpropagation proposed by \citet{guerguiev2017}. We first reviewed the biological problems of implementing backpropagation in the brain. Then we discussed current approaches from the literature to circumvent such (e.g. feedback alignment \citep{lillicrap2016} and target propagation \citep{lee2015}). Afterwards, we turned towards a novel approach utilizing the electrical segregation of apical, somatic and basal compartments in pyramidal neurons. We reviewed the model and learning architecture which was divided into a forward and target phase. 
+Finally, we reimplemented the model and run several robustness checks as well further analyses on the model. Given the hyperparameters provided in the paper, we are able to replicate and extend the results of \citet{guerguiev2017}. We find that weights are many magnitudes larger than for the backpropagation learned weights. Furthermore, the algorithm performs as good if not even better on the MNIST task. 
+For more complex dataset the learning rule still works but does not perform as good. Furthermore, the learning appears to converge fairly fast (relative to the Frobenius norm of the weights).
+Finally, our results show that the learning rule is not robust to changes in the many hyperparameters. Backpropagation networks have far less hyperparameters to tune and appear extremely robust to such. The electrically segregated architecture, on the other hand, has many hyperparameter configurations which lead to a learning rule that does not learn at all.
 
 \subsection*{\citet{sacramento2018} - Dendritic Microcircuits}
 
@@ -356,7 +318,8 @@ Segregated compartments generate local targets that act as credit assignment sig
 	\end{itemize}
 	\item[$\Rightarrow$] \citet{sacramento2018}: Neocortical micro-circuits and inhibitory interneurons might act synchronizing.
 \end{itemize}
-\newpage
+
+
 \listoftodos[Todo-List for Rob]
 
 
@@ -367,19 +330,9 @@ Segregated compartments generate local targets that act as credit assignment sig
 {\footnotesize \bibliography{main.bib}}
 
 %--------------------------------------------------------------------
-\newpage
 \section*{Supplementary Material}
 
-\subsection*{A Literature Review}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=\textwidth]{../figures/report/lit_rev}
-	\caption{Literature Review.}	
-\end{figure}
-
 \subsection*{Bayesian Optimization Hyperparameter Spaces}
-\rob{Add hyperparameter descriptions}
 
 \fcolorbox{black}[HTML]{E9F0E9}{\parbox{\textwidth}{%
 \small{
@@ -390,7 +343,7 @@ Segregated compartments generate local targets that act as credit assignment sig
  \hline
 Hyperparameter & Range & Description\\
  \hline
- Batchsize & Integer: $[10, 500]$ & Number of data points in mini-batch\\
+ Batchsize & Integer: $[50, 500]$ & Number of data points in mini-batch\\
  Learning Rate & Float: $[0.0001, 0.05]$ & SGD learning rate\\
  \# Hidden Layers & Integer: $[1, 6]$ & \\ 
  \# Hidden Layer Units & Integer: $[30, 500]$ & \\ 
@@ -408,7 +361,7 @@ Hyperparameter & Range & Description\\
  \hline
 Hyperparameter & Range & Description\\
  \hline
- Batchsize & Integer: $[10, 500]$ & Number of data points in mini-batch\\
+ Batchsize & Integer: $[50, 500]$ & Number of data points in mini-batch\\
  Learning Rate & Float: $[0.0001, 0.05]$ & SGD learning rate\\
  \# Hidden Layers & Integer: $[1, 6]$ & \\ 
  Channels & Integer: $[3, 64]$ & \\
