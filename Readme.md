@@ -9,7 +9,7 @@ This project analyzes the performance and dynamics different learning rules in d
 
 Recent alternatives explore local learning rules and draw inspiration from the compartmental design of pyramidal neurons. Apical compartments integrate top-down information while basal dendritic compartments collect bottom-up information. This way one does not require separate pathways and instead exploits the electrical segregation observed in the physiology of pyramidal neurons in sensory cortices.
 
-For more blabla and blublub please check out the following two documents:
+For more words please check out the following two documents:
 * [Final Report](report/background.pdf)
 * [Final Presentation](report/presentation.pdf)
 
@@ -18,7 +18,17 @@ For more blabla and blublub please check out the following two documents:
 ## Repository Structure
 ```
 Bio-Plausible-DeepLearning
-├── workspace.ipynb: Main workspace notebook - Execute for replication
+├── workspace_dnn.ipynb: Trains individual backpropagation MLP/CNN models and runs Bayesian optimization pipeline for them.
+├── workspace_comp_dnn.ipynb: Trains individual compartmental MLP models.
+├── workspace_comp_visualize.ipynb: Produces the figures.
+├── run_bo.py: Script for Bayesian Optimization.
+├── figures: Folder containing saved figures.
+├── logs: Folder containing training and optimization logs
+├── models: Folder containing scripts defining DNN/CNN/CompDNN models
+├── report: Folder containing writeup and presentation slides
+├── utils: Helper functions (data preparation, logging, plotting, BO)
+├── Readme.md: Documentation
+├── requirements.txt: Dependencies
 ```
 
 ## (Basic) How to use this code
@@ -39,9 +49,20 @@ source BioDL/bin/activate
 ```
 pip install -r requirements.txt
 ```
-4. Run the main notebook:
+4. Run the main notebooks:
 ```
-jupyter notebook workspace_*.ipynb
+jupyter notebook workspace_dnn.ipynb
+jupyter notebook workspace_guergiev.ipynb
+```
+5. Run the bayesian optimization pipeline separately for compartmental DNN:
+```
+python run_bo.py -t comp_dnn -d mnist
+python run_bo.py -t comp_dnn -d fashion
+python run_bo.py -t comp_dnn -d cifar10
+```
+6. Run the visualization notebook:
+```
+jupyter notebook workspace_visualize.ipynb
 ```
 
 ## (Advanced) Jupyter Env on AWS EC2 Instance Setup

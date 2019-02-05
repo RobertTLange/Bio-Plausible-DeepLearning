@@ -1,0 +1,194 @@
+\hypertarget{repository-structure}{%
+\subsection*{Repository Structure}\label{repository-structure}}
+
+\begin{verbatim}
+Bio-Plausible-DeepLearning
+|-- workspace_dnn.ipynb: Train backpropagation MLP/CNN models and runs BO pipeline for them.
+|-- workspace_comp_dnn.ipynb: Train individual compartmental MLP models.
+|-- workspace_comp_visualize.ipynb: Produces the figures.
+|-- run_bo.py: Script for Bayesian Optimization.
+|-- figures: Folder containing saved figures.
+|-- logs: Folder containing training and optimization logs
+|-- models: Folder containing scripts defining DNN/CNN/CompDNN models
+|-- report: Folder containing writeup and presentation slides
+|-- utils: Helper functions (data preparation, logging, plotting, BO)
+|-- Readme.md: Documentation
+|-- requirements.txt: Dependencies
+\end{verbatim}
+
+\hypertarget{basic-how-to-use-this-code}{%
+\subsection*{(Basic) How to use this
+code}\label{basic-how-to-use-this-code}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Clone the repo.
+\end{enumerate}
+
+\begin{verbatim}
+git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning
+cd Bio-Plausible-DeepLearning
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Create a virtual environment (optional but recommended).
+\end{enumerate}
+
+\begin{verbatim}
+virtualenv -p python BioDL
+\end{verbatim}
+
+Activate the env (the following command works on Linux, other operating
+systems might differ):
+
+\begin{verbatim}
+source BioDL/bin/activate
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  Install all dependencies:
+\end{enumerate}
+
+\begin{verbatim}
+pip install -r requirements.txt
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  Run the main notebooks:
+\end{enumerate}
+
+\begin{verbatim}
+jupyter notebook workspace_dnn.ipynb
+jupyter notebook workspace_guergiev.ipynb
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  Run the bayesian optimization pipeline separately for compartmental
+  DNN:
+\end{enumerate}
+
+\begin{verbatim}
+python run_bo.py -t comp_dnn -d mnist
+python run_bo.py -t comp_dnn -d fashion
+python run_bo.py -t comp_dnn -d cifar10
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{5}
+\tightlist
+\item
+  Run the visualization notebook:
+\end{enumerate}
+
+\begin{verbatim}
+jupyter notebook workspace_visualize.ipynb
+\end{verbatim}
+
+\hypertarget{advanced-jupyter-env-on-aws-ec2-instance-setup}{%
+\subsection*{(Advanced) Jupyter Env on AWS EC2 Instance
+Setup}\label{advanced-jupyter-env-on-aws-ec2-instance-setup}}
+
+During the course of this project I trained many models. More
+specifically, I run 50 iterations of the BO pipeline for all three
+analyzed datasets as well as all three model types (Backprop MLP,
+Backprop CNN, Segregated Comp MLP). Running the Bayesian Optimization
+(BO) pipeline takes a while. Therefore, I run most of the analysis on a
+\textbf{p2.xlarge} AWS EC2 instance which utilizes a Tesla K80 GPU. In
+total training should take no more than 24 hours. Depending on the AMI
+that you use and whether or not you use a demand/spot instance, this
+should cost around 15\$. I recommend the AWS Deep Learning Base AMI.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Clone repo, Create/Activate the environment and install dependencies
+\end{enumerate}
+
+\begin{verbatim}
+git clone https://github.com/RobertTLange/Bio-Plausible-DeepLearning
+cd Bio-Plausible-DeepLearning
+conda create --name BioDL python=3.6 --no-default-packages
+source activate BioDL
+pip install -r requirements.txt --quiet
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Add ipykernel to listed env kernels, Launch notebook silent and open
+  port (start a screen session in between!)
+\end{enumerate}
+
+\begin{verbatim}
+python -m ipykernel install --user --name BioDL --display-name "Python3 (BioDL)"
+jupyter notebook --no-browser --port=8080
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  In new terminal window on local machine rewire port and listen
+\end{enumerate}
+
+\begin{verbatim}
+ssh -i keyname.pem -N -f -L localhost:2411:localhost:8080 user@MACHINE_IP_ADDRESS
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  In Browser open localhost port and start working on the notebook of
+  choice. If required copy paste the token/set a password. Afterwards
+  run notebook of choice
+\end{enumerate}
+
+\begin{verbatim}
+localhost:2411
+\end{verbatim}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  After computations are done either git add, comnmit, push to remote
+  repo or copy files back.
+\end{enumerate}
+
+\begin{verbatim}
+scp -i keyname.pem -r user@MACHINE_IP_ADDRESS:Bio-Plausible-DeepLearning .
+\end{verbatim}
+
+\hypertarget{jupyter-env-cleanup}{%
+\subsection*{Jupyter Env Cleanup}\label{jupyter-env-cleanup}}
+
+\begin{verbatim}
+conda env remove -n BioDL
+jupyter kernelspec uninstall BioDL
+\end{verbatim}

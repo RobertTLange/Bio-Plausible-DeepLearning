@@ -23,7 +23,7 @@ if not os.path.exists(log_dir):
     os.makedirs(log_dir)
     print("Created New Log Directory")
 else:
-    filelist = [ f for f in os.listdir(log_dir) if f.startswith("events")]
+    filelist = [f for f in os.listdir(log_dir) if f.startswith("events")]
     for f in filelist:
         os.remove(os.path.join(log_dir, f))
     print("Deleted Old TF/TensorBoard Log Files in Existing Log Directory")
@@ -79,7 +79,7 @@ hyper_space_comp_dnn = {"use_sparse_feedback": (0, 1),
                         'h_l_5': (30, 500),
                         'h_l_6': (30, 500)}
 
-# Run Bayesian Optimization (UCB-Acquisition Fct) on DNN
+# Define Search Hyperspace for Bayesian Optimization on CNNs
 hyper_space_cnn = {'batch_size': (10, 500),
                    'learning_rate': (0.0001, 0.05),
                    'num_layers': (1, 5),
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--dataset', action="store",
                         default="mnist", type=str,
                         help='Dataset on which to Bayesian Optimization')
-    
+
     args = parser.parse_args()
     model_type = args.type
     dataset = args.dataset
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     else:
         raise "Provide a valid Model!"
 
-    # Run Bayesian Optimization (UCB-Acquisition Fct) for dataset
+    # Run Bayesian Optimization (UCB-Acquisition Fct) for dataset and model
     opt_log = BO_NN(bo_iters, model, model_type, dataset,
                     hyper_space,
                     num_epochs, k_fold, logging=True, verbose=True)
