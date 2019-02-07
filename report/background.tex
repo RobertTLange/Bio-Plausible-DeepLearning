@@ -180,7 +180,7 @@ The dynamics are then summarized by the following system of equations:
 
 	\begin{align*}
 		\tau \frac{dV_i^l(t)}{dt} = -V_i^l(t) + \frac{g_b}{g_{leak}}\left(V_i^{lb}(t) - V_i^l(t)\right) +\frac{g_a}{g_{leak}}\left(V_i^{la}(t) - V_i^l(t)\right)\\
-		V_i^{lb} = \sum_{j=1}^{n_{l-1}} W_{ij}^l s_j^{l-1}(t) + b_i^l; \ \ \ V_i^{la} = \sum_{j=1}^{n_{l+1}} Y_{ij} s^{l+1}_j(t); \ \ \
+		V_i^{lb} = \sum_{j=1}^{n_{l-1}} W_{ij}^l s_j^{l-1}(t) + b_i^l; \ \ \ V_i^{la} = \sum_{j=1}^{n_{l+1}} Y_{ij}^l s^{l+1}_j(t); \ \ \
 		s_j^{l}(t) = \sum_k \kappa(t-t_{jk}^{l})
 	\end{align*}
 
@@ -190,7 +190,7 @@ The output layer indexed by $L$, on the other hand, does not receive any apical 
 
 \begin{align*}
 		\tau \frac{dV_i^L(t)}{dt} &= -V_i^L(t) + \frac{g_d}{g_{leak}}\left(V_i^{Lb}(t) - V_i^L(t) \right) + I_i(t)\\
-		V_i^{Lb} &= \sum_{j=1}^{n_{l-1}} W_{ij}^L s_j^{L-1}(t) + b_i^L
+		V_i^{Lb} &= \sum_{j=1}^{n_{L-1}} W_{ij}^L s_j^{L-1}(t) + b_i^L
 \end{align*}
 
 Classifications are obtained by integrating until settlement and selecting the label corresponding to the output neuron with the largest rate-of-fire (where $\phi_{max}$ denotes max-firing):
@@ -216,11 +216,11 @@ During the target phase from $t_1 + \Delta t_s$ until $t_2$ we do the same, expe
 
 So how can learning be defined in such a model? \citet{guerguiev2017} argue that a network which has learned to classify, exhibits the same activity pattern during the forward phase (i.e. without teaching current/supervision signal) as in the supervised target phase. More formally, the somatic compartments generating Poisson-like spikes should fire at the target rate, $\phi_i^{L\star} = \frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^L(t)dt$. A desired loss function for the output layer can then be derived as follows:
 
-$$\mathcal{L}^L = ||\phi^{L\star} - \bar{\phi}^{Lf}||_2^2 = ||\frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^L(t)dt - \frac{1}{\Delta t_1} \int_{t_0 + \Delta t_s}^{t_1} \phi_i^L(t)dt||_2^2$$
+$$\mathcal{L}^L = ||\phi^{L\star} - \bar{\phi}^{Lf}||_2^2 = ||\frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi^L(t)dt - \frac{1}{\Delta t_1} \int_{t_0 + \Delta t_s}^{t_1} \phi^L(t)dt||_2^2$$
 
 For all other layers the loss function is defined in terms of the approximate plateau potential difference:
 
-$$L^l = ||\phi^{l\star} - \bar{\phi}^{lf}||_2^2 = ||\bar{\phi}_i^{lf} + \alpha_i^{lt} - \alpha_i^{lf} - \bar{\phi}^{lf}||_2^2 = ||\alpha^{lt} - \alpha^{lf}||_2^2 \ \forall l=0, \dots, L-1$$
+$$L^l = ||\phi^{l\star} - \bar{\phi}^{lf}||_2^2 = ||\bar{\phi}^{lf} + \alpha^{lt} - \alpha^{lf} - \bar{\phi}^{lf}||_2^2 = ||\alpha^{lt} - \alpha^{lf}||_2^2 \ \forall l=0, \dots, L-1$$
 
 Given such layer-wise loss functions, one can then perform local gradient descent updates in order to tune the feedforward synaptic weights:
 

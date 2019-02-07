@@ -349,49 +349,49 @@ h_l \coloneqq f(h_{l-1}; \theta_l) &= \sigma_l (W_l h_{l-1} + b_l)\\
 \end{frame}
 
 
-%%------------------------------------------------------------------------------%
-%\begin{frame}{Literature Review}
-%\vspace{-0.5cm}
-%
-%\begin{figure}[H]
-%	\centering
-%	\includegraphics[width=\textwidth]{../figures/report/lit_rev}
-%\end{figure}
-%
-%\end{frame}
-%
-%%------------------------------------------------------------------------------%
-%
-%\begin{frame}{What do I want to analyze? What's next?}
-%\vspace{-0.5cm}
-%
-%\begin{itemize}\footnotesize
-%  \item Literature Review
-%  \begin{todolist}
-%  \item[\done] Feedback Alignment \citep{lillicrap2016}
-%  \item[\done] Target Propagation \citep{lee2015, bartunov2018},
-%  \item[\done] Segregated Compartments \citep{guerguiev2017, sacramento2018}
-%  \end{todolist}
-%  \item Implement different models/learning rules
-%  \begin{todolist}
-%  \item[\done] Standard Backprop MLP, CNN in PyTorch
-%  \item[\done] Segregated Compartment MLP in Numpy
-%  \item $k$-fold CV pipeline for SC MLP
-%  \end{todolist}
-%  \item Analyze learning dynamics
-%  \begin{todolist}
-%  \item $||W_t||_F$ - Overfitting? $||\Delta W_t||_F$ - Convergence? $||\Delta \nabla W_t||_F$ - Local optima? Feedback alignment - Inverse Jacobian
-%  \item Different SGD variants: Momentum, Adam, RMSprop
-%  \end{todolist}
-%  \item Analyze Hyperparameter/Dataset Robustness
-%  \begin{todolist}
-%  	\item[\done] Different datasets (MNIST, Fashion, CIFAR-10)
-%    \item[\done] Bayesian Optimization for Hyperparam. Search Backprop
-%    \item Bayesian Optimization for Hyperparam. Search SC
-%  \end{todolist}
-%\end{itemize}
-%
-%\end{frame}
+%------------------------------------------------------------------------------%
+\begin{frame}{Literature Review}
+\vspace{-0.5cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{../figures/report/lit_rev}
+\end{figure}
+
+\end{frame}
+
+%------------------------------------------------------------------------------%
+
+\begin{frame}{What do I want to analyze? What's next?}
+\vspace{-0.5cm}
+
+\begin{itemize}\footnotesize
+  \item Literature Review
+  \begin{todolist}
+  \item[\done] Feedback Alignment \citep{lillicrap2016}
+  \item[\done] Target Propagation \citep{lee2015, bartunov2018},
+  \item[\done] Segregated Compartments \citep{guerguiev2017, sacramento2018}
+  \end{todolist}
+  \item Implement different models/learning rules
+  \begin{todolist}
+  \item[\done] Standard Backprop MLP, CNN in PyTorch
+  \item[\done] Segregated Compartment MLP in Numpy
+  \item $k$-fold CV pipeline for SC MLP
+  \end{todolist}
+  \item Analyze learning dynamics
+  \begin{todolist}
+  \item $||W_t||_F$ - Overfitting? $||\Delta W_t||_F$ - Convergence? $||\Delta \nabla W_t||_F$ - Local optima? Feedback alignment - Inverse Jacobian
+  \item Different SGD variants: Momentum, Adam, RMSprop
+  \end{todolist}
+  \item Analyze Hyperparameter/Dataset Robustness
+  \begin{todolist}
+  	\item[\done] Different datasets (MNIST, Fashion, CIFAR-10)
+    \item[\done] Bayesian Optimization for Hyperparam. Search Backprop
+    \item Bayesian Optimization for Hyperparam. Search SC
+  \end{todolist}
+\end{itemize}
+
+\end{frame}
 
 
 
