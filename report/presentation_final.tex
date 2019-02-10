@@ -144,40 +144,34 @@
 \end{frame}
 
 %------------------------------------------------------------------------------%
-\begin{frame}{Biologically Implausible Backpropagation}
+\begin{frame}{Backprop ... and its problems}
 
-\begin{itemize}
-	\item[$\rightarrow$] MLP: $h_l \coloneqq f(h_{l-1}; \theta_l) = \sigma_l (W_l h_{l-1} + b_l), \ l=1,\dots, L$
-\end{itemize}
-\pause
-\centering
-\includegraphics[width=1.1\textwidth]{../figures/report/backprop_1}
-
+\centering 
+\includegraphics[width=1.1\textwidth]{../figures/report/bp_1}
 \end{frame}
 
-%------------------------------------------------------------------------------%
-\begin{frame}[noframenumbering]{Biologically Implausible Backpropagation}
+\begin{frame}[noframenumbering]{Backprop ... and its problems}
 
-\begin{itemize}
-	\item[$\rightarrow$] MLP: $h_l \coloneqq f(h_{l-1}; \theta_l) = \sigma_l (W_l h_{l-1} + b_l), \ l=1,\dots, L$
-\end{itemize}
-
-\centering
-\includegraphics[width=1.1\textwidth]{../figures/report/backprop_2}
-
+\centering 
+\includegraphics[width=1.1\textwidth]{../figures/report/bp_2}
 \end{frame}
 
+\begin{frame}[noframenumbering]{Backprop ... and its problems}
 
-%------------------------------------------------------------------------------%
-\begin{frame}[noframenumbering]{Biologically Implausible Backpropagation}
+\centering 
+\includegraphics[width=1.1\textwidth]{../figures/report/bp_3}
+\end{frame}
 
-\begin{itemize}
-	\item[$\rightarrow$] MLP: $h_l \coloneqq f(h_{l-1}; \theta_l) = \sigma_l (W_l h_{l-1} + b_l), \ l=1,\dots, L$
-\end{itemize}
+\begin{frame}[noframenumbering]{Backprop ... and its problems}
 
-\centering
-\includegraphics[width=1.1\textwidth]{../figures/report/backprop_3}
+\centering 
+\includegraphics[width=1.1\textwidth]{../figures/report/bp_4}
+\end{frame}
 
+\begin{frame}[noframenumbering]{Backprop ... and its problems}
+
+\centering 
+\includegraphics[width=1.1\textwidth]{../figures/report/bp_5}
 \end{frame}
 
 
@@ -185,59 +179,39 @@
 \begin{frame}{A Solution - Electrical Segregation of $\downarrow$ and $\uparrow$ Info}
 
 \centering 
-\includegraphics[width=1.1\textwidth]{../figures/report/comp_sol_1}
+\includegraphics[width=1.1\textwidth]{../figures/report/elec_seg_1}
 \end{frame}
 
 %------------------------------------------------------------------------------%
 \begin{frame}[noframenumbering]{A Solution - Electrical Segregation of $\downarrow$ and $\uparrow$ Info}
 
 \centering 
-\includegraphics[width=1.1\textwidth]{../figures/report/comp_sol_2}
+\includegraphics[width=1.1\textwidth]{../figures/report/elec_seg_2}
 \end{frame}
 %------------------------------------------------------------------------------%
 \begin{frame}[noframenumbering]{A Solution - Electrical Segregation of $\downarrow$ and $\uparrow$ Info}
 
 \centering 
-\includegraphics[width=1.1\textwidth]{../figures/report/comp_sol_3}
+\includegraphics[width=1.05\textwidth]{../figures/report/elec_seg_3}
 \end{frame}
 
 %------------------------------------------------------------------------------%
-\begin{frame}{\citet{guerguiev2017} - Hidden Layer Structure}
+\begin{frame}{No Separate Pathway via Segregation}
 
 \centering 
-\includegraphics[width=1.1\textwidth]{../figures/report/hidden_1}
+\includegraphics[width=1.1\textwidth]{../figures/report/elec_seg_4}
 \end{frame}
 
-%------------------------------------------------------------------------------%
-\begin{frame}[noframenumbering]{\citet{guerguiev2017} - Hidden Layer Structure}
-
-\centering 
-\includegraphics[width=1.05\textwidth]{../figures/report/hidden_2}
-\end{frame}
 
 %------------------------------------------------------------------------------%
-\begin{frame}{\citet{guerguiev2017} - Output Layer Structure}
-
-\centering 
-\includegraphics[width=1.05\textwidth]{../figures/report/out_1}
-\end{frame}
-
-%------------------------------------------------------------------------------%
-\begin{frame}[noframenumbering]{\citet{guerguiev2017} - Output Layer Structure}
-
-\centering 
-\includegraphics[width=1.1\textwidth]{../figures/report/out_2}
-\end{frame}
-
-%------------------------------------------------------------------------------%
-\begin{frame}{\citet{guerguiev2017} - Credit Assignment Signals}
+\begin{frame}{Credit Assignment Signals}
 
 \centering 
 \includegraphics[width=1.05\textwidth]{../figures/report/phases_1}
          
 \end{frame}
 %------------------------------------------------------------------------------%
-\begin{frame}[noframenumbering]{\citet{guerguiev2017} - Credit Assignment Signals}
+\begin{frame}[noframenumbering]{Credit Assignment Signals}
 
 \centering 
 \includegraphics[width=1.05\textwidth]{../figures/report/phases_2}         
@@ -245,105 +219,112 @@
 \end{frame}
 
 %------------------------------------------------------------------------------%
-\begin{frame}{\citet{guerguiev2017} - Learning}
-	\vspace{0.5cm}
-	\begin{tcolorbox}
-	Forward phase activity $\Leftrightarrow$ Target phase activity  
-	\end{tcolorbox}
-	\pause
+\begin{frame}[noframenumbering]{Credit Assignment Signals}
 
-\begin{itemize}
-	\item[$\Rightarrow$] Output Layer:
-	\begin{itemize}
-		\item[$\circ$] Target firing rates: $\phi_i^{L\star} = \frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^L(t)dt$
-		\item[$\circ$] Loss function: 
-	\end{itemize}
-	\vspace{0.5cm}
-	$$L^L = ||\phi^{L\star} - \bar{\phi}^{Lf}||_2^2 = ||\frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi^L(t)dt - \frac{1}{\Delta t_1} \int_{t_0 + \Delta t_s}^{t_1} \phi^L(t)dt||_2^2$$
-	\pause
-	\item[$\Rightarrow$] Hidden Layer:
-	\begin{itemize}
-		\item[$\circ$] Target firing rates: $\phi_i^{l\star} = \bar{\phi}_i^{lf} + \alpha_i^{lt} - \alpha_i^{lf}$
-		\item[$\circ$] Loss function:
-	\end{itemize}
-	\vspace{0.5cm}
-	$$L^l = ||\phi^{l\star} - \bar{\phi}^{lf}||_2^2 = ||\alpha^{lt} - \alpha^{lf}||_2^2$$
-	\pause
-	\item[$\Rightarrow$] Local error minimization via gradient descent
-\end{itemize}
+\centering 
+\includegraphics[width=1.025\textwidth]{../figures/report/phases_3}         
+
 \end{frame}
+
+
 
 %------------------------------------------------------------------------------%
 
-\begin{frame}[noframenumbering]{Empirical Investigations}
+\begin{frame}{Empirical Investigations}
 	\begin{figure}
 		\centering
-		\includegraphics[width=\textwidth]{../figures/report/datasets}
+		\includegraphics[width=\textwidth]{../figures/report/empirical_tests}
 	\end{figure}
 \end{frame}
 
 %------------------------------------------------------------------------------%
 
-\begin{frame}{State-of-the-Art Performance}
+\begin{frame}
 	\begin{figure}
 		\centering
-		\includegraphics[width=\textwidth]{../figures/learning}
+		\includegraphics[height=\textheight]{../figures/report/p1_1}
 	\end{figure}
 \end{frame}
 
 %------------------------------------------------------------------------------%
 
-\begin{frame}{Fast convergence or Overfitting?}
+\begin{frame}[noframenumbering]
 	\begin{figure}
 		\centering
-		\includegraphics[width=\textwidth]{../figures/dynamics_l0}
+		\includegraphics[width=\textwidth]{../figures/report/p1_2}
+	\end{figure}
+\end{frame}
+
+
+%------------------------------------------------------------------------------%
+
+\begin{frame}
+	\begin{figure}
+		\centering
+		\includegraphics[height=\textheight]{../figures/report/p2_1}
 	\end{figure}
 \end{frame}
 
 %------------------------------------------------------------------------------%
 
-\begin{frame}{Well... Robustness?}
+\begin{frame}[noframenumbering]
 	\begin{figure}
 		\centering
-		\includegraphics[width=\textwidth]{../figures/bayes_opt_comparison}
+		\includegraphics[width=\textwidth]{../figures/report/p2_2}
+	\end{figure}
+\end{frame}
+
+
+%------------------------------------------------------------------------------%
+
+\begin{frame}
+	\begin{figure}
+		\centering
+		\includegraphics[height=1\textheight]{../figures/report/p3_1}
 	\end{figure}
 \end{frame}
 
 %------------------------------------------------------------------------------%
-\begin{frame}{\citet{guerguiev2017} - Accomplishments/Problems}
+
+\begin{frame}[noframenumbering]
+	\begin{figure}
+		\centering
+		\includegraphics[width=\textwidth]{../figures/report/p3_2}
+	\end{figure}
+\end{frame}
+
+%------------------------------------------------------------------------------%
+\begin{frame}{Summary ... and where to go?}
 
 \begin{todolist}
-	\item[\done] Physiological plausible electrical segregation
-	\item[\done] Signal can be used to exploit depth in near-continuous time
-	\item[\wontfix] \textbf{Computational} Problems
-	\begin{itemize}
-		\item[$\to$] Expensive/slow training
-		\item[$\rightarrow$] Non-robust!
-	\end{itemize}
-	\item[\wontfix] \textbf{Physiological} Problems
-	\begin{itemize}
-	\item[$\rightarrow$] How is the teaching signal internally generated - Mismatch neurons?
-	\item[$\rightarrow$] 2 global phases? - Length sampled from inverse Gaussian
-	\item[$\rightarrow$] Stoch. gen. of plateau potentials - apical calcium spikes
-	\end{itemize}
+	\item[\done] Electrical segregation $\Rightarrow$ Near-continuous time
+	\item[\wontfix] \textbf{Computational} and \textbf{Physiological} Problems
 \end{todolist}
-\end{frame}
-
-
-\begin{frame}{Where to go from here?}
-	\begin{tabular}{cl}
+	\pause
+	
+\begin{tabular}{cl}
 	       \begin{tabular}{l}
              \parbox{0.6\linewidth}{%  change the parbox width as appropiate
             \begin{itemize}
 				\item[$\to$] \citet{sacramento2018}: Local error from mismatch with local \textbf{interneurons}
 				\begin{itemize}
-					\item[$\Rightarrow$] Lateral $\Leftrightarrow$ Apical
-					\item[$\Rightarrow$] No separate phases
+					\item 	
+					\item 
+					\item
 				\end{itemize}
-				\item[$\to$] \citet{naud_2018}:  \textbf{Multiplexing}
+
+%				\begin{itemize}
+%					\item[$\Rightarrow$] Lateral $\Leftrightarrow$ Apical
+%					\item[$\Rightarrow$] No separate phases
+%				\end{itemize}
+				\item[$\to$] \citet{naud_2018}: \textbf{Multiplexing}
+%				\begin{itemize}
+%					\item[$\Rightarrow$] Burst Fraction $\Leftrightarrow$ Apical $\Downarrow$
+%					\item[$\Rightarrow$] Event Rate $\Leftrightarrow$ Somatic $\Uparrow$
+%				\end{itemize}
 				\begin{itemize}
-					\item[$\Rightarrow$] Burst Fraction $\Leftrightarrow$ Apical $\Downarrow$
-					\item[$\Rightarrow$] Event Rate $\Leftrightarrow$ Somatic $\Uparrow$
+					\item
+					\item 	
 				\end{itemize}
             \end{itemize}
     }
@@ -354,6 +335,7 @@
 \end{tabular}
 \end{frame}
 
+\appendix
 
 %------------------------------------------------------------------------------%
 
@@ -368,6 +350,58 @@
 
 %------------------------------------------------------------------------------%
 
+%------------------------------------------------------------------------------%
+\begin{frame}[noframenumbering]{Biologically Implausible Backpropagation}
+
+\begin{itemize}
+	\item[$\rightarrow$] MLP: $h_l \coloneqq f(h_{l-1}; \theta_l) = \sigma_l (W_l h_{l-1} + b_l), \ l=1,\dots, L$
+\end{itemize}
+
+\centering
+\includegraphics[width=1.1\textwidth]{../figures/report/backprop_2}
+
+\end{frame}
+
+%------------------------------------------------------------------------------%
+\begin{frame}[noframenumbering]{\citet{guerguiev2017} - Hidden Layer Structure}
+
+\centering 
+\includegraphics[width=1.05\textwidth]{../figures/report/hidden_2}
+\end{frame}
+
+%------------------------------------------------------------------------------%
+\begin{frame}[noframenumbering]{\citet{guerguiev2017} - Output Layer Structure}
+
+\centering 
+\includegraphics[width=1.05\textwidth]{../figures/report/out_1}
+\end{frame}
+
+
+%%------------------------------------------------------------------------------%
+\begin{frame}[noframenumbering]{\citet{guerguiev2017} - Learning}
+	\vspace{0.5cm}
+	\begin{tcolorbox}
+	Forward phase activity $\Leftrightarrow$ Target phase activity  
+	\end{tcolorbox}
+
+\begin{itemize}
+	\item[$\Rightarrow$] Output Layer:
+	\begin{itemize}
+		\item[$\circ$] Target firing rates: $\phi_i^{L\star} = \frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi_i^L(t)dt$
+		\item[$\circ$] Loss function: 
+	\end{itemize}
+	\vspace{0.5cm}
+	$$L^L = ||\phi^{L\star} - \bar{\phi}^{Lf}||_2^2 = ||\frac{1}{\Delta t_2} \int_{t_1 + \Delta t_s}^{t_2} \phi^L(t)dt - \frac{1}{\Delta t_1} \int_{t_0 + \Delta t_s}^{t_1} \phi^L(t)dt||_2^2$$
+	\item[$\Rightarrow$] Hidden Layer:
+	\begin{itemize}
+		\item[$\circ$] Target firing rates: $\phi_i^{l\star} = \bar{\phi}_i^{lf} + \alpha_i^{lt} - \alpha_i^{lf}$
+		\item[$\circ$] Loss function:
+	\end{itemize}
+	\vspace{0.5cm}
+	$$L^l = ||\phi^{l\star} - \bar{\phi}^{lf}||_2^2 = ||\alpha^{lt} - \alpha^{lf}||_2^2$$
+	\item[$\Rightarrow$] Local error minimization via gradient descent
+\end{itemize}
+\end{frame}
 
 
 \end{document} 

@@ -1,19 +1,23 @@
 # Biological Plausible Deep Learning
-## Author: Robert Tjarko Lange | January 2019
+## Author: Robert Tjarko Lange | January + February 2019
 
 This project analyzes the performance and dynamics different learning rules in deep layered structures. More specifically, we explore alternatives to backpropagation (aka the chain rule). A few reasons for why this is interesting:
 
 1. Weight transport (access to all weights at every layer of the backward pass) renders backpropagation biologically implausible.
 2. Global signed error transmission as well as matrix transposition both are computationally expensive.
-3. The brain is more about communication than computation.
+3. The brain is more about long-range communication than computation.
 
 Recent alternatives explore local learning rules and draw inspiration from the compartmental design of pyramidal neurons. Apical compartments integrate top-down information while basal dendritic compartments collect bottom-up information. This way one does not require separate pathways and instead exploits the electrical segregation observed in the physiology of pyramidal neurons in sensory cortices.
 
+Here we reimplement **Guerguiev, J., Lillicrap, T. P., & Richards, B. A. (2017). Towards deep learning with segregated dendrites. ELife, 6, e22901.** and perform multiple robustness checks. Part of the code is adopted from their [base implementation](https://github.com/jordan-g/Segregated-Dendrite-Deep-Learning).
+
 For more words please check out the following two documents:
 * [Final Report](report/background.pdf)
-* [Final Presentation](report/presentation.pdf)
+* [Final Presentation](report/presentation_final.pdf)
 
 ![Alt text](figures/learning.png)
+
+![Alt text](figures/bayes_opt_comparison.png)
 
 ## Repository Structure
 ```

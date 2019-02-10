@@ -159,11 +159,11 @@ Figure \ref{fig:lit_rev} provides a more detailed summary of the existing litera
 \citet{kording2001} postulated that the brain might solve the credit assignment problem with the help of electrical segregation. Inspired by the physiological traits of multi-compartmental pyramidal neurons (see figure \ref{fig:pyramidal}), they derive a basic local learning rule which integrates top-down feedback at the distal apical dendrites with bottom-up sensory input from the basal dendrites. 
 \citet{guerguiev2017} extend this intuition to the assignment of credit in MLPs. More specifically, they formalize the idea of plateau potentials driving synaptic plasticity in pyramidal neurons. The apical compartment does not constantly communicate with the somatic compartment. Instead, voltage-gated $Ca^{2+}$ channels provide feedback information to the nucleus. Plateau potentials, thereby, correspond to a long-lasting increase in membrane potential due to such events in the apical shaft. 
 
-\begin{wrapfigure}{L}{0.5\textwidth}
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.5\textwidth]{../figures/report/pyramidal_plateu}
-\caption{\label{fig:pyramidal} Taken from \citet{larkum_1999}. }
-\end{wrapfigure}
+\includegraphics[width=0.75\textwidth]{../figures/report/elec_seg_3}
+\caption{\label{fig:pyramidal} A schematic illustration of compartmental hidden and output layer neurons.}
+\end{figure}
  
 Let $n_{l}$ denote the number of hidden units in layer $l$. A hidden layer is described by real-valued vectors $\mathbf{V^{la}}(t), \mathbf{V^{lb}}(t), \mathbf{V^{l}}(t) \in \mathbb{R}^{n_l}$ which correspond to the three compartments of each neuron:
 
@@ -194,17 +194,17 @@ The output layer indexed by $L$, on the other hand, does not receive any apical 
 \end{align*}
 
 Classifications are obtained by integrating until settlement and selecting the label corresponding to the output neuron with the largest rate-of-fire (where $\phi_{max}$ denotes max-firing):
-	
-\begin{wrapfigure}{L}{0.5\textwidth}
-\centering
-\includegraphics[width=0.5\textwidth]{../figures/report/phases}
-\caption{\label{fig:phases} Taken from \citet{guerguiev2017}.}
-\end{wrapfigure}
 
 $$arg\max_i \phi^L_i(t) = \phi_{max} \sigma(V_i^L(t))$$
 
 The somatic output current also receives an external teaching current, $I_i(t)$, which guides learning. More specifically, learning is defined by two phases of varying length: A forward and a target phase (see figure \ref{fig:phases}). The length of such phases are randomly sampled from an inverse Gaussian distribution.\footnote{\citet{guerguiev2017} argue that the specific length does not matter. Important is only the existence of these those alternating phases.}
-More specifically, let the forward phase start at time $t_0$. Furthermore, there is an initial settling period of $\Delta t_s$.
+More specifically, let the forward phase start at time $t_0$. There is assumed to be an initial settling period of $\Delta t_s$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{../figures/report/phases_3}
+\caption{\label{fig:phases} Two Phase Learning with Segregated Compartments}
+\end{figure}	
  
 During the forward phase the teaching current is set to zero for all output neurons, i.e. $I_i(t) = 0, \ \forall i=1,\dots, n^L$. For the time from $t_0 + \Delta t_s$ until the start of the target phase $t_1$ we calculate an approximation of the plateau potential by averaging over the apical membrane potential and taking the sigmoid non-linearity, $\sigma(.)$, of the resulting value.
 During the target phase from $t_1 + \Delta t_s$ until $t_2$ we do the same, expect for the fact that the external current is set to a maximal firing rate $\phi_{max}$ for the specific label of the currently processed image, $I_i = \phi_{max}$ for $i = y_{label}$ and 0 otherwise. Thereby, the teaching current nudges the activity of the network towards the correct output.
@@ -229,7 +229,7 @@ $$\Delta W^l \propto \frac{\partial \mathcal{L}^l}{\partial W^l} \text{  and  } 
 Please note that one can also learn the feedback weights $Y^l$, obtaining a compartmental version of target propagation. When keeping $Y^l$ fixed to their random initialization one, on the other hand, obtains a learning rule akin to feedback alignment.
 
 %--------------------------------------------------------------------
-\newpage
+%\newpage
 \section{Empirical Investigations}
 
 \begin{figure}[H]
@@ -238,16 +238,20 @@ Please note that one can also learn the feedback weights $Y^l$, obtaining a comp
 	\caption{Illustration of the 10 different classes/labels of the analyzed datasets. \textbf{Top Row:} MNIST dataset. \textbf{Middle Row:} Fashion-MNIST dataset. Data format: $70000 \times 1 \times 28 \times 28$. \textbf{Bottom Row:} CIFAR-10 dataset. Data format: $60000 \times 3 \times 32 \times 32$. From top to bottom the intra-class variability/entropy increases significantly. We normalize the pixel values to lie within $[0, 1]$ and reshape the images into vector format (e.g. $X \in [0, 1]^{784}$) before training the classifiers.}	\label{fig:data}
 \end{figure}
 
+Most of the computational neuroscience literature working on supervised learning focuses on a single dataset: MNIST \cite{lecun_1998}. Since object recognition tasks do not only require the skill of optical character recognition, we test the scalability and flexibility of the introduced architecture to different datasets. It is desirable to have a learning rule which is able to deal with dataset which exhibit large amounts of entropy in their data generating process. Therefore, we implemented and tested the \citet{guerguiev2017} model not only on MNIST but also on the Fashion-MNIST \citep{xiao_2017} as well as the CIFAR-10 \citep{torralba_2008} dataset (see figure \ref{fig:data}). Figure \ref{fig:performance} compares the learning performance of the compartmental deep neural network with a standard backpropagation MLP and convolutional neural network (CNN). One can clearly observe that the alternative compartment-based learning rule accomplishes strong performance on both traditional MNIST and Fashion-MNIST. For the RGB CIFAR-10 dataset the compartmental approach falls drastically short. The validation accuracy does not exceed 35 percent after 10 epochs (SGD loops over the entire training dataset) compared to 45 percent for the backpropagation-based MLP.
+Hence, this provides evidence that the approach proposed does not deal well with datasets which exhibit large variability in their representations.
+
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{../figures/learning}
 	\caption{Illustration of the learning performance. \textbf{Top Row}: Train and validation accuracy across the three datasets. \textbf{Bottom Row}: Train and validation cross-entropy loss across the three datasets. The MLP architectures consists of a single hidden layer with 100 hidden units.} \label{fig:performance}
 \end{figure}
 
-Most of the computational neuroscience literature trying to tackle the problem of supervised learning focuses on one single dataset: MNIST \cite{lecun_1998}. Since object recognition tasks do not only require the skill of optical character recognition, we test the scalability and flexibility of the introduced architecture to different datasets. It is desirable to have a learning rule which is able to deal with dataset which exhibit large amounts of entropy in there data generating process. Therefore, we implemented and tested the \citet{guerguiev2017} model not only on MNIST but also on the Fashion-MNIST \citep{xiao_2017} as well as the CIFAR-10 \citep{torralba_2008} dataset (see figure \ref{fig:data}). Figure \ref{fig:performance} compares the learning performance of the compartmental deep neural network with a standard backpropagation MLP and convolutional neural network (CNN). One can clearly observe that the alternative compartment-based learning rule accomplishes strong performance on both traditional MNIST and Fashion-MNIST. For the RGB CIFAR-10 dataset the compartmental approach falls drastically short. The validation accuracy does not exceed 35 percent after 10 epochs (SGD loops over the entire training dataset).
-Hence, this provides evidence that the approach proposed does not deal well with datasets which exhibit large variability in their representations.
 
 \subsection*{Learning Dynamics}
+
+We further analyze the dynamics of the parameters across the learning process. The first row of figure \ref{fig:dynamics} displays the Frobenius norm of the weight matrix of the first layer. Large weights usually provide an indicator of overfitting (and thereby provide the motivation for norm-based regularization). One can observe that the weights are magnitudes larger for the compartmental DNN as compared to the backpropagation MLP. At the same time the weights appear to converge faster. The second row displays the relative change of the weights between updates. Finally, the gradients do not appear to change as much for the compartmental rule.
+Together with out previous conclusions from the learning performance provides evidence for a local optimum being reached fairly early in the learning procedure. This might be the reason for strong performance early in the learning but is not desired later on.
 
 \begin{figure}[H]
 	\centering
@@ -255,12 +259,12 @@ Hence, this provides evidence that the approach proposed does not deal well with
 	\caption{Illustration of the learning dynamics.}\label{fig:dynamics}
 \end{figure}
 
-We further analyze the dynamics of the parameters across the learning process. The first row of figure \ref{fig:dynamics} displays the Frobenius norm of the weight matrix of the first layer. Large weights usually provide an indicator of overfitting (and thereby provide the motivation for norm-based regularization). One can observe that the weights are magnitudes larger for the compartmental DNN as compared to the backpropagation MLP. At the same time the weights appear to converge faster. The second row displays the relative change of the weights between updates. Finally, the gradients do not appear to change as much for the compartmental rule.
-Together with out previous conclusions from the learning performance provides evidence for a local optimum being reached fairly early in the learning procedure. This might be the reason for strong performance early in the learning but is not desired later on.
 
 \subsection*{Hyperparameter Robustness}
 
 Finally, we are interested in the robustness of the compartmental approach. There are many hyperparameters which do not come with a natural biological interpretation (do to the rescaling of the membrane potential at rest). In the supplementary material we provide a list of all hyperparameters which have to optimized for a given classification task. An algorithmic approach to the credit assignment problem has to be robust to changes in such parameters. We therefore analyze the hyperparameter sensitivity with the help of Bayesian optimization.
+Bayesian optimization (BO; \citet{snoek_2012}) is a probabilistic technique commonly used to optimize the parameters of complex functions with costly evaluations. Computing cross-validated test accuracies of deep networks is one such costly function. Instead of randomly searching through the hyperparameter space, one is able to guide the search in a Bayesian fashion. We approximate the loss function $\mathcal{L}^{k-fold}(\theta|X, y)$ as an infinitely dimensional vector with the help of a Gaussian Process (GP; see e.g. \citet{rasmussen_2004}). The properties (i.e. smoothness, differentiability, etc.) of the function are encoded in the covariance matrix of the GP. This in turn is characterized by a kernel function (e.g. squared-exponential or Matern). Given a mean vector and a covariance matrix, we can construct the multivariate Gaussian posterior of the loss surface given the data and as a function of the hyperparameters. 
+The next hyperparameter configuration which we intend to evaluate has to efficiently tradeoff the mean (exploitation) and the variance (exploration) of the GP. This is usually done by evaluating an acquisition function (e.g. expected improvement, upper-confidence bound). Hence, instead of randomly evaluating the target function, we query the function in a Bayesian optimal fashion.\footnote{Note that the covariance matrix inversion needed to obtain the GP posterior comes at $\mathcal{O}(n^3)$ where $n$ denotes the number previous evaluations.} This query schedule reduces the number of overall network training but requires us to update the GP posterior after every evaluation and to evaluate the acquisition function.
 
 \begin{figure}[H]
 	\centering
@@ -268,28 +272,24 @@ Finally, we are interested in the robustness of the compartmental approach. Ther
 	\caption{Illustration of the learning performance. 50 runs of the BO scheme using a Matern kernel ($\nu=2.5$) and a UCB acquisition function. We display the time-series, histogram and boxplots for all models and datasets.}\label{fig:bo}
 \end{figure}
 
-Bayesian optimization (BO; \citet{snoek_2012}) is a probabilistic technique commonly used to optimize the parameters of complex functions with costly evaluations. Computing cross-validated test accuracies of deep networks is one such costly function. Instead of randomly searching through the hyperparameter space, one is able to guide the search in a Bayesian fashion. We approximate the loss function $\mathcal{L}^{k-fold}(\theta|X, y)$ as an infinitely dimensional vector with the help of a Gaussian Process (GP; see e.g. \citet{rasmussen_2004}). The properties (i.e. smoothness, differentiability, etc.) of the function are encoded in the covariance matrix of the GP. This in turn is characterized by a kernel function (e.g. squared-exponential or Matern). Given a mean vector and a covariance matrix, we can construct the multivariate Gaussian posterior of the loss surface given the data and as a function of the hyperparameters. 
-The next hyperparameter configuration which we intend to evaluate then has to efficiently tradeoff the mean (exploitation) and the variance (exploration) of the GP. This is usually done by evaluating an acquisition function (e.g. expected improvement, upper-confidence bound). Hence, instead of randomly evaluating the target function, we query the function in a Bayesian optimal fashion.\footnote{Note that the covariance matrix inversion needed to obtain the GP posterior comes at $\mathcal{O}(n^3)$ where $n$ denotes the number previous evaluations.} This query schedule reduces the number of overall network training but requires us to update the GP posterior after every evaluation and to evaluate the acquisition function.
-
-In figure \ref{fig:bo} we display the results of a BO run with 50 evaluations for all three datasets (MNIST, Fashion-MNIST, CIFAR-10) as well as the three model types (backpropagation MLP and CNN as well as compartmental MLP). The first row depicts the time-series of 3-fold cross-validated test accuracies. The second row, on the other hand, displays the discrete histogram of test accuracies. And finally, the last row demonstrates boxplots of the distributions. We can observe that both the traditional MLP and the CNN appear very robust across the different hyperparameters.
+In figure \ref{fig:bo} we display the results of a BO run with 50 evaluations for all three datasets (MNIST, Fashion-MNIST, CIFAR-10) as well as the three model types (backpropagation MLP and CNN as well as compartmental MLP)\footnote{As of the submission deadline we can only report 41, 30 and 23 BO iterations for the compartmental rule on the MNIST, Fashion-MNIST and CIFAR-10 dataset, respectively.}. The first row depicts the time-series of 3-fold cross-validated test accuracies throughout the optimization procedure. The second row, on the other hand, displays the discrete histogram of test accuracies. And finally, the last row demonstrates boxplots of the distributions. We can observe that both the traditional MLP and the CNN appear very robust across the different hyperparameters. The compartmental approach, on the other hand, does not appear very robust to changes from the reported hyperparameter constellation by \citet{guerguiev2017}. The distribution of 3-fold test accuracies obtained by the hyperparameter search exhibits large variance compared to the ones obtained from using backpropagation. 
 
 %--------------------------------------------------------------------
 \section{Outlook and Conclusion}
 
 This report has empirically investigated the scalability and robustness of the compartmental alternative to backpropagation proposed by \citet{guerguiev2017}. We first reviewed the biological problems of implementing backpropagation in the brain. Then we discussed current approaches from the literature to circumvent such (e.g. feedback alignment \citep{lillicrap2016} and target propagation \citep{lee2015}). Afterwards, we turned towards a novel approach utilizing the electrical segregation of apical, somatic and basal compartments in pyramidal neurons. We reviewed the model and learning architecture which was divided into a forward and target phase. 
-Finally, we reimplemented the model and run several robustness checks as well further analyses on the model. Given the hyperparameters provided in the paper, we are able to replicate and extend the results of \citet{guerguiev2017}. We find that weights are many magnitudes larger than for the backpropagation learned weights. Furthermore, the algorithm performs as good if not even better on the MNIST task. 
-For more complex dataset the learning rule still works but does not perform as good. Furthermore, the learning appears to converge fairly fast (relative to the Frobenius norm of the weights).
-Finally, our results show that the learning rule is not robust to changes in the many hyperparameters. Backpropagation networks have far less hyperparameters to tune and appear extremely robust to such. The electrically segregated architecture, on the other hand, has many hyperparameter configurations which lead to a learning rule that does not learn at all.
+Finally, we reimplemented the model and run several robustness checks as well further analyses on the model. Given the hyperparameters provided in the paper, we are able to replicate and extend the results of \citet{guerguiev2017}. We find that weights are many magnitudes larger than for the backpropagation case. Furthermore, the algorithm performs as good if not even better on the MNIST task. 
+For more complex datasets the learning rule still works but does not perform as good. Furthermore, the learning appears to converge fairly fast (relative to the Frobenius norm of the weights) and overfitting due to large weights might be a concern.
+Finally, our results show that the learning rule is not robust to changes in the many hyperparameters. Backpropagation networks have far less hyperparameters to tune and appear extremely robust to such. The electrically segregated architecture, on the other hand, has many more hyperparameter configurations which lead to a learning rule that does not learn at all.
 
-A recent extension introduced by \citet{sacramento2018} is to construct dendritic microcircuits. Here apical dendrites also act as integration zones, but in this case no separate phases are needed. Local errors encode the mismatch between pre-synaptic input from lateral interneurons and top-down feedback. The errors arise from a mismatch between lateral local interneuron inputs. Thereby apical dendrites have an explicit error representation which can be computed by simultaneous integration of top-down excitation and lateral inhibition. This gets rid of the implausible assumption of two distinct phases of integration.
+A recent extension introduced by \citet{sacramento2018} is to construct dendritic microcircuits. Here apical dendrites also act as integration zones, but in this case no separate phases are needed. Local errors encode the mismatch between pre-synaptic input from lateral interneurons and top-down feedback. The errors arise from a mismatch between lateral local interneuron inputs and somatic activity. Thereby apical dendrites have an explicit error representation which can be computed by simultaneous integration of top-down excitation and lateral inhibition. This gets rid of the implausible assumption of two distinct phases of integration.
 
 Furthermore, Blake Richards recently highlighted the potential of "multiplexing".\footnote{See his keynote talk at ICLR 2018: \url{https://www.youtube.com/watch?v=C_2Q7uKtgNs}} Multiplexing \citep{naud_2018} describes the ability of a neuron to simultaneously track the content of different pathways (e.g. feedforward and feedback). More specifically, the burst rate might encode for top-down supervision and the event rate might represent the bottom-up propagation of sensory input. By letting a unit in the network be represented by an ensemble of neurons, one might overcome the discrete plateau potential events.
 
 Finally, we bring up the following question: Why should the brain implement a suboptimal \textbf{and} non-robust learning rule on a neurophysiological level? A simple answer to this is the flexibility that such an alternative architecture comes with. 
-Usually, the deep learning community has focused on coming up with better architectures to achieve super-human performance in a given task. While doing so backpropagation is taken for granted. But it might be more time efficient to have a local error rule that is able to accommodate for the severe architectural network complexity observed in the brain.
+Usually, the deep learning community has focused on coming up with better architectures to achieve super-human performance in a given task. While doing so, backpropagation is taken for granted. But it might be more time efficient to have a local error rule that is able to accommodate for the severe architectural network complexity observed in the brain.
 
-We conclude by acknowledging the accomplishments of \citet{guerguiev2017}. They provide a \textbf{more} plausible learning rule based on a rate network that is made up of compartmental neurons. The dynamics operate in near-continuous time and perform reasonably well for a specific parameter constellation.
-Looking forward we would love to see more work extending such ideas to spiking networks as well as non-phasic learning. 
+We conclude by acknowledging the accomplishments of \citet{guerguiev2017}. They provide a \textbf{more} plausible learning rule based on a rate network that is made up of compartmental neurons. The dynamics operate in near-continuous time and perform reasonably well for a specific parameter constellation. Looking forward we would love to see more work extending such ideas to spiking networks as well as more plausible non-phasic learning. 
 
 %--------------------------------------------------------------------
 \setlength{\bibsep}{4pt plus 0.3ex}

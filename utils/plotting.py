@@ -208,3 +208,28 @@ def plot_bo_results(bo_data, title, save_fname=None):
         plt.savefig(save_fname, dpi=300)
         print("Saved figure to {}".format(save_fname))
     return
+
+
+def plot_learning_presentation(its, train_accs, val_accs,
+                      train_losses, val_losses, sm_window,
+                      sub_titles, labels, save_fname=None):
+    plt.figure(figsize=(10, 8), dpi=200)
+
+    counter = 0
+
+    # Loop Over all Datasets
+    for i in range(3):
+        counter += 1
+        plt.subplot(2, 3, counter)
+        plot_learning(its[i], train_accs[i], val_accs[i],
+                      train_losses[i], val_losses[i],
+                      sm_window, "accuracy", sub_titles[i], labels,
+                      plot_legend=(i==0))
+        plt.subplot(2, 3, counter+len(train_losses))
+        plot_learning(its[i], train_accs[i], val_accs[i],
+                      train_losses[i], val_losses[i],
+                      sm_window, "loss", sub_titles[i], labels)
+    plt.tight_layout()
+    if save_fname is not None:
+        plt.savefig(save_fname, dpi=300)
+        print("Saved figure to {}".format(save_fname))
